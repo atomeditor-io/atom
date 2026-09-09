@@ -74,6 +74,7 @@ if (!argv.existingBinaries) {
   checkChromedriverVersion()
   cleanOutputDirectory()
   copyAssets()
+  require("./lib/patch-node-modules")()
   transpilePackagesWithCustomTranspilerPaths()
   transpileBabelPaths()
   transpileCoffeeScriptPaths()

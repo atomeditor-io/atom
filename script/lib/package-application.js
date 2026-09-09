@@ -15,6 +15,7 @@ const CONFIG = require('../config');
 const HOST_ARCH = hostArch();
 
 module.exports = function() {
+  require("./patch-node-modules").scrub(CONFIG.intermediateAppPath);
   const appName = getAppName();
   console.log(
     `Running electron-packager on ${
