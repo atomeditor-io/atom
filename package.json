@@ -155,7 +155,7 @@
     "spell-check": "git+https://github.com/atom/spell-check.git#df4dfeb",
     "status-bar": "git+https://github.com/atom/status-bar.git#4edfaa8",
     "styleguide": "git+https://github.com/atom/styleguide.git#aa4f682",
-    "superstring": "^2.4.4",
+    "superstring": "tmiland-lab/superstring#electron-modern",
     "symbols-view": "git+https://github.com/atom/symbols-view.git#36c4dd4",
     "tabs": "git+https://github.com/atom/tabs.git#7653505",
     "temp": "0.9.2",
