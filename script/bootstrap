@@ -45,4 +45,8 @@ childProcess.execFileSync(
 )
 runApmInstall(CONFIG.repositoryRootPath, ci)
 
+// Electron 12+ renderer requires context-aware native modules; patch sources,
+// rebuild for the Electron target, and reseed nested copies (idempotent).
+require('./lib/patch-node-modules')()
+
 dependenciesFingerprint.write()
