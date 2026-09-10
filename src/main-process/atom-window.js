@@ -5,6 +5,10 @@ const {
   ipcMain,
   nativeImage
 } = require('electron');
+const electronRemote = require('@electron/remote/main');
+// Rung 2 (tmiland-lab fork): Electron 14 removed the built-in remote module;
+// @electron/remote provides it. initialize() once, then enable() per window.
+electronRemote.initialize();
 const getAppName = require('../get-app-name');
 const path = require('path');
 const url = require('url');
@@ -57,8 +61,8 @@ module.exports = class AtomWindow extends EventEmitter {
         nodeIntegration: true,
         webviewTag: true,
 
-        // TodoElectronIssue: remote module is deprecated https://www.electronjs.org/docs/breaking-changes#default-changed-enableremotemodule-defaults-to-false
-        enableRemoteModule: true,
+        // Rung 2 (tmiland-lab fork): Electron 14 removed enableRemoteModule;
+        // @electron/remote/main.enable() below replaces it.
         // node support in threads
         nodeIntegrationInWorker: true
       },
@@ -77,6 +81,9 @@ module.exports = class AtomWindow extends EventEmitter {
     const BrowserWindowConstructor =
       settings.browserWindowConstructor || BrowserWindow;
     this.browserWindow = new BrowserWindowConstructor(options);
+
+    // Rung 2 (tmiland-lab fork): per-window enablement for @electron/remote.
+    electronRemote.enable(this.browserWindow.webContents);
 
     Object.defineProperty(this.browserWindow, 'loadSettingsJSON', {
       get: () =>

@@ -1,5 +1,5 @@
 const AutoUpdateManager = require('../src/auto-update-manager');
-const { remote } = require('electron');
+const remote = require('@electron/remote');
 const electronAutoUpdater = remote.require('electron').autoUpdater;
 
 describe('AutoUpdateManager (renderer)', () => {
