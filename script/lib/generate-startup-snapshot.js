@@ -81,6 +81,18 @@ module.exports = function(packagedAppPath) {
     cachePath: path.join(CONFIG.atomHomeDirPath, 'snapshot-cache'),
     auxiliaryData: CONFIG.snapshotAuxiliaryData,
     shouldExcludeModule: ({ requiringModulePath, requiredModulePath }) => {
+      // tmiland-lab fork: bare module names reaching this callback are
+      // requires the walker could not resolve to a file — modern Node core
+      // modules/subpaths (util/types, diagnostics_channel, node:test, …)
+      // unknown to the build-era builtinModules list. They are never files
+      // in the bundle; leave them as runtime requires.
+      if (
+        !requiredModulePath.startsWith("./") &&
+        !requiredModulePath.startsWith("../") &&
+        !path.isAbsolute(requiredModulePath)
+      ) {
+        return true;
+      }
       if (processedFiles > 0) {
         process.stdout.write('\r');
       }
