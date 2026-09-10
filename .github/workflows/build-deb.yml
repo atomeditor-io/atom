@@ -2,7 +2,7 @@ name: build-deb
 
 on:
   push:
-    tags: ["v*-debian13*", "v*-e13*"]
+"tags": ["v*-debian13*", "v*-e13*", "v*-e14*"]
   workflow_dispatch:
 
 permissions:
