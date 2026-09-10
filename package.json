@@ -12,7 +12,7 @@
     "url": "https://github.com/atom/atom/issues"
   },
   "license": "MIT",
-  "electronVersion": "13.6.9",
+  "electronVersion": "14.2.9",
   "dependencies": {
     "@atom/fuzzy-native": "^1.2.1",
     "@atom/nsfw": "^1.0.28",
@@ -170,7 +170,8 @@
     "whitespace": "git+https://github.com/atom/whitespace.git#53d5ba9",
     "winreg": "^1.2.1",
     "wrap-guide": "git+https://github.com/atom/wrap-guide.git#6a4f577",
-    "yargs": "16.1.0"
+    "yargs": "16.1.0",
+    "@electron/remote": "2.1.2"
   },
   "packageDependencies": {
     "atom-dark-syntax": "file:./packages/atom-dark-syntax",
