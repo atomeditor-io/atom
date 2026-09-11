@@ -54,9 +54,12 @@ jobs:
         with:
           fetch-depth: 1
 
+      # Node 12 never shipped darwin/arm64 binaries; run the x64 build
+      # under Rosetta (matches upstream Atom, which was x64-only on mac).
       - uses: actions/setup-node@v4
         with:
           node-version: "12.22.12"
+          architecture: "x64"
 
       - name: Build Atom mac zip (unsigned)
         env:
