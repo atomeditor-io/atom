@@ -1,87 +1,40 @@
-# Atom
+# Atom (tmiland-lab revival)
 
-[![Build status](https://dev.azure.com/github/Atom/_apis/build/status/Atom%20Production%20Branches?branchName=master)](https://dev.azure.com/github/Atom/_build/latest?definitionId=32&branchName=master)
+Active fork of [atom/atom](https://github.com/atom/atom) `v1.63.1`, keeping a usable Atom alive on modern Electron — pure lineage (this tree + our patches, stock Electron runtime). Upstream archived Atom in Dec 2022; this fork builds, releases, and climbs Electron rung-by-rung.
 
-> Atom and all repositories under Atom will be archived on December 15, 2022. Learn more in our [official announcement](https://github.blog/2022-06-08-sunsetting-atom/)
+Progress is tracked in [#1](https://github.com/tmiland-lab/atom/issues/1) (one comment per rung with release + CI links).
 
-Atom is a hackable text editor for the 21st century, built on [Electron](https://github.com/electron/electron), and based on everything we love about our favorite editors. We designed it to be deeply customizable, but still approachable using the default configuration.
+## Status
 
-![Atom](https://user-images.githubusercontent.com/378023/49132477-f4b77680-f31f-11e8-8357-ac6491761c6c.png)
+Latest: **v1.63.1-e36.1** — Atom 1.63.1 / Electron 36.9.5 / Chromium 136 / Node 22.19.0 ([release](https://github.com/tmiland-lab/atom/releases/tag/v1.63.1-e36.1)).
 
-![Atom Screenshot](https://user-images.githubusercontent.com/378023/49132478-f4b77680-f31f-11e8-9e10-e8454d8d9b7e.png)
+| Base | Rungs shipped | Notes |
+|---|---|---|
+| v1.63.1-debian13.1 | Electron 11 baseline | Builds on modern Debian, CI `.deb` |
+| e13.1 → e36.1 | Electron 13 → 36 | Every rung CI-built; backports kept green |
 
-Visit [atom.io](https://atom.io) to learn more or visit the [Atom forum](https://github.com/atom/atom/discussions).
+Notable walls solved: context-aware natives (E14), V8 API removals (E20), universal fork discipline (apm installs branch HEADs, not lockfile SHAs), GTK4 probe clash (E36, forced `gtk-version 3`).
 
-Follow [@AtomEditor](https://twitter.com/atomeditor) on Twitter for important
-announcements.
-
-This project adheres to the Contributor Covenant [code of conduct](CODE_OF_CONDUCT.md).
-By participating, you are expected to uphold this code. Please report unacceptable behavior to atom@github.com.
-
-## Documentation
-
-If you want to read about using Atom or developing packages in Atom, the [Atom Flight Manual](https://flight-manual.atom.io) is free and available online. You can find the source to the manual in [atom/flight-manual.atom.io](https://github.com/atom/flight-manual.atom.io).
-
-The [API reference](https://atom.io/docs/api) for developing packages is also documented on Atom.io.
+Known issues (tolerated, app fully usable): tree-sitter null-node TypeErrors on some JS opens; github package worker file missing from packaged app. Both slated for dedicated follow-up.
 
 ## Installing
 
-### Prerequisites
-- [Git](https://git-scm.com)
+Grab the build for your Electron rung from [releases](https://github.com/tmiland-lab/atom/releases) (latest = newest Electron):
 
-### macOS
+- **Linux**: `atom-amd64.deb` (Debian/Ubuntu) or `atom.x86_64.rpm` (Fedora/RHEL-likes).
+- **macOS**: `atom-mac.zip` (unsigned — right-click → Open on first launch). In progress.
+- **Windows**: Squirrel installer (`Setup.exe`, unsigned). In progress.
 
-Download the latest [Atom release](https://github.com/atom/atom/releases/latest).
+## Packages
 
-Atom will automatically update when a new release is available.
+No registry — install straight from GitHub: `apm install owner/repo`. Pure-JS packages work out of the box; native packages build against Electron headers via the patched apm (see build doc).
 
-### Windows
-
-Download the latest [Atom installer](https://github.com/atom/atom/releases/latest). `AtomSetup.exe` is 32-bit. For 64-bit systems, download `AtomSetup-x64.exe`.
-
-Atom will automatically update when a new release is available.
-
-You can also download `atom-windows.zip` (32-bit) or `atom-x64-windows.zip` (64-bit) from the [releases page](https://github.com/atom/atom/releases/latest).
-The `.zip` version will not automatically update.
-
-Using [Chocolatey](https://chocolatey.org)? Run `cinst Atom` to install the latest version of Atom.
-
-### Linux
-
-Atom is only available for 64-bit Linux systems.
-
-Configure your distribution's package manager to install and update Atom by following the [Linux installation instructions](https://flight-manual.atom.io/getting-started/sections/installing-atom/#platform-linux) in the Flight Manual.  You will also find instructions on how to install Atom's official Linux packages without using a package repository, though you will not get automatic updates after installing Atom this way.
-
-#### Archive extraction
-
-An archive is available for people who don't want to install `atom` as root.
-
-This version enables you to install multiple Atom versions in parallel. It has been built on Ubuntu 64-bit,
-but should be compatible with other Linux distributions.
-
-1. Install dependencies (on Ubuntu):
-```sh
-sudo apt install git libasound2 libcurl4 libgbm1 libgcrypt20 libgtk-3-0 libnotify4 libnss3 libglib2.0-bin xdg-utils libx11-xcb1 libxcb-dri3-0 libxss1 libxtst6 libxkbfile1
-```
-2. Download `atom-amd64.tar.gz` from the [Atom releases page](https://github.com/atom/atom/releases/latest).
-3. Run `tar xf atom-amd64.tar.gz` in the directory where you want to extract the Atom folder.
-4. Launch Atom using the installed `atom` command from the newly extracted directory.
-
-The Linux version does not currently automatically update so you will need to
-repeat these steps to upgrade to future releases.
+AI coding support: [tmiland-lab/atom-ai](https://github.com/tmiland-lab/atom-ai) (`apm install tmiland-lab/atom-ai`) — CLI-agent bridge (opencode/aider/claude/custom), no API keys.
 
 ## Building
 
-* [Linux](https://flight-manual.atom.io/hacking-atom/sections/hacking-on-atom-core/#platform-linux)
-* [macOS](https://flight-manual.atom.io/hacking-atom/sections/hacking-on-atom-core/#platform-mac)
-* [Windows](https://flight-manual.atom.io/hacking-atom/sections/hacking-on-atom-core/#platform-windows)
-
-## Discussion
-
-* Discuss Atom on [GitHub Discussions](https://github.com/atom/atom/discussions)
+Debian 13 recipe (local + CI): [docs/building-debian13.md](docs/building-debian13.md). Short version: Node 12.22.12 + Python 3.11, `script/bootstrap`, `script/build --create-debian-package --create-rpm-package`. CI (`.github/workflows/build-deb.yml`) does the same on every `v*` tag plus mac/Windows jobs.
 
 ## License
 
-[MIT](https://github.com/atom/atom/blob/master/LICENSE.md)
-
-When using the Atom or other GitHub logos, be sure to follow the [GitHub logo guidelines](https://github.com/logos).
+[MIT](LICENSE.md) (upstream Atom license, unchanged).
