@@ -68,6 +68,11 @@ function initCallArgs(text, func) {
   return 'exports';
 }
 
+// Packages with native bindings that must NOT be touched:
+// - nslog: main-process-only logging (required by src/main-process/start.js);
+//   the renderer context-aware requirement never applies to it.
+const NATIVE_SKIP_LIST = ['nslog'];
+
 function discoverNativeTargets(nodeModulesRoot) {
   const targets = [...CONTEXT_AWARE_PACKAGES];
   let entries;
@@ -77,13 +82,16 @@ function discoverNativeTargets(nodeModulesRoot) {
     return targets;
   }
   for (const entry of entries) {
-    // Tree-sitter language grammars (tree-sitter-c, tree-sitter-python,
-    // ...) are plain NAN modules too and need the same treatment.
+    if (!entry.isDirectory()) continue;
+    if (targets.includes(entry.name)) continue;
+    if (NATIVE_SKIP_LIST.includes(entry.name)) continue;
+    const pkgDir = path.join(nodeModulesRoot, entry.name);
+    // Any root package shipping a binding.gyp is a native module candidate.
+    // Packages without plain NODE_MODULE registrations (N-API, already
+    // context-aware) are harmless no-ops in the patch step below.
     if (
-      entry.isDirectory() &&
-      entry.name.startsWith('tree-sitter-') &&
-      !targets.includes(entry.name) &&
-      fs.existsSync(path.join(nodeModulesRoot, entry.name, 'package.json'))
+      fs.existsSync(path.join(pkgDir, 'package.json')) &&
+      fs.existsSync(path.join(pkgDir, 'binding.gyp'))
     ) {
       targets.push(entry.name);
     }
@@ -320,6 +328,13 @@ module.exports = function patchNodeModules() {
   }
   const caPatched = patchContextAwareSources(root);
   for (const pkg of caPatched) {
+    // Only rebuild packages that were built at install time (a .node
+    // already exists). Anything else is never loaded by the app; rebuilding
+    // it would only add new failure modes.
+    if (!nativeBinaryPaths(path.join(root, pkg)).length) {
+      console.log(`Skipping rebuild of ${pkg} (no prebuilt binary present)`);
+      continue;
+    }
     rebuildNativeForElectron(root, pkg);
     reseedNestedNativeCopies(CONFIG.repositoryRootPath, root, pkg);
   }
