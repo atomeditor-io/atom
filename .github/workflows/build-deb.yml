@@ -47,6 +47,27 @@ jobs:
             out/*.deb
             out/*.rpm
 
+  test-install:
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: atom-packages
+          path: out
+
+      - name: Install .deb (real dpkg install test)
+        run: |
+          sudo dpkg -i out/*.deb || sudo apt-get install -f -y
+          atom --version
+
+      - name: Headless launch smoke (xvfb, must stay up)
+        run: |
+          sudo apt-get install -y xvfb
+          timeout 40 xvfb-run -a atom --safe > smoke-install.log 2>&1; rc=$?
+          test $rc -eq 124 || (echo "unexpected exit $rc"; tail -30 smoke-install.log; exit 1)
+          grep -E "Renderer process crashed|non-context-aware|Gtk-ERROR" smoke-install.log && exit 1 || echo SMOKE-CLEAN
+
   build-mac:
     runs-on: macos-14
     steps:
