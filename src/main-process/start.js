@@ -1,4 +1,9 @@
 const { app } = require('electron');
+// tmiland-lab fork (E36+): Electron 36 probes GTK4 first and dies mixing it
+// with the GTK3 Electron still loads — force the GTK3 path (proven: manual
+// --gtk-version=3 resurrects the app; without it the main process aborts on
+// any distro with libgtk-4 installed).
+app.commandLine.appendSwitch('gtk-version', '3');
 const nslog = require('nslog');
 const path = require('path');
 const temp = require('temp');
