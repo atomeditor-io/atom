@@ -45,4 +45,6 @@ childProcess.execFileSync(
 )
 runApmInstall(CONFIG.repositoryRootPath, ci)
 
+require('./lib/patch-node-modules')()
+
 dependenciesFingerprint.write()
