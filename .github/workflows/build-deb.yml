@@ -61,6 +61,11 @@ jobs:
           node-version: "12.22.12"
           architecture: "x64"
 
+      # Vendored node-gyp needs distutils (gone in Python 3.12+).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Build Atom mac zip (unsigned)
         env:
           ATOM_ELECTRON_URL: https://electronjs.org/headers
@@ -89,6 +94,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "12.22.12"
+
+      # Vendored node-gyp needs distutils (gone in Python 3.12+).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Build Atom Windows installer (unsigned)
         env:
