@@ -23,22 +23,26 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxkbfile-dev libsecret-1-dev libx11-dev libxext-dev fakeroot
+          sudo apt-get install -y libxkbfile-dev libsecret-1-dev libx11-dev libxext-dev fakeroot rpm
 
-      - name: Build Atom + .deb
+      - name: Build Atom + .deb/.rpm
         env:
           ATOM_ELECTRON_URL: https://electronjs.org/headers
           GYP_DEFINES: "openssl_fips= "
           npm_config_node_gyp: ${{ github.workspace }}/script/patches/node-gyp/bin/node-gyp.js
-        run: ./script/build --create-debian-package
+        run: ./script/build --create-debian-package --create-rpm-package
 
       - uses: actions/upload-artifact@v4
         with:
-          name: atom-deb
-          path: out/*.deb
+          name: atom-packages
+          path: |
+            out/*.deb
+            out/*.rpm
 
-      - name: Publish .deb to release
+      - name: Publish packages to release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: out/*.deb
+          files: |
+            out/*.deb
+            out/*.rpm
