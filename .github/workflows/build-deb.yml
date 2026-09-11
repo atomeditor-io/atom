@@ -46,3 +46,67 @@ jobs:
           files: |
             out/*.deb
             out/*.rpm
+
+  build-mac:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "12.22.12"
+
+      - name: Build Atom mac zip (unsigned)
+        env:
+          ATOM_ELECTRON_URL: https://electronjs.org/headers
+          GYP_DEFINES: "openssl_fips= "
+          npm_config_node_gyp: ${{ github.workspace }}/script/patches/node-gyp/bin/node-gyp.js
+        run: ./script/build --compress-artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atom-mac
+          path: out/atom-mac.zip
+
+      - name: Publish mac zip to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/atom-mac.zip
+
+  build-win:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "12.22.12"
+
+      - name: Build Atom Windows installer (unsigned)
+        env:
+          ATOM_ELECTRON_URL: https://electronjs.org/headers
+          GYP_DEFINES: "openssl_fips= "
+          npm_config_node_gyp: ${{ github.workspace }}/script/patches/node-gyp/bin/node-gyp.js
+        run: node script/build --create-windows-installer
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atom-win
+          path: |
+            out/*.exe
+            out/*.nupkg
+            out/RELEASES*
+
+      - name: Publish Windows installer to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/*.exe
+            out/*.nupkg
+            out/RELEASES*
