@@ -34,9 +34,66 @@ const CONTEXT_AWARE_PACKAGES = [
 
 const NODE_MODULE_RE = /NODE_MODULE\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*,\s*([A-Za-z0-9_:]+?)\s*\)/;
 
+// Determine how many arguments the native init function takes by inspecting
+// its definition in the same file. Addon inits come in three shapes:
+//   void Init(Local<Object> exports)                  -> Init(exports)
+//   void Init(Local<Object> exports, Local<Object>)    -> Init(exports, module)
+//     (older NAN/tree-sitter-grammar style; module is Local<Value>-compatible)
+//   NAN_MODULE_INIT(Init)                             -> Init(exports)
+function initCallArgs(text, func) {
+  const shortName = func.includes('::') ? func.split('::').pop() : func;
+  const esc = shortName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const nanInit = new RegExp('NAN_MODULE_INIT\\s*\\(\\s*' + esc + '\\s*\\)');
+  if (nanInit.test(text)) {
+    return 'exports';
+  }
+  const defRe = new RegExp(
+    '(?:^|[^A-Za-z0-9_:])(?:void\\s+)?([A-Za-z0-9_:]*' +
+      esc +
+      ')\\s*\\(([^)]*)\\)',
+    'gm'
+  );
+  let m;
+  while ((m = defRe.exec(text)) !== null) {
+    const fullName = m[1];
+    if (fullName !== func && fullName !== shortName) {
+      continue;
+    }
+    const params = m[2].trim();
+    if (!params) return 'exports';
+    const count = params.split(',').length;
+    if (count >= 3) return 'exports, module, context';
+    if (count === 2) return 'exports, v8::Local<v8::Object>::Cast(module)';
+  }
+  return 'exports';
+}
+
+function discoverNativeTargets(nodeModulesRoot) {
+  const targets = [...CONTEXT_AWARE_PACKAGES];
+  let entries;
+  try {
+    entries = fs.readdirSync(nodeModulesRoot, { withFileTypes: true });
+  } catch (e) {
+    return targets;
+  }
+  for (const entry of entries) {
+    // Tree-sitter language grammars (tree-sitter-c, tree-sitter-python,
+    // ...) are plain NAN modules too and need the same treatment.
+    if (
+      entry.isDirectory() &&
+      entry.name.startsWith('tree-sitter-') &&
+      !targets.includes(entry.name) &&
+      fs.existsSync(path.join(nodeModulesRoot, entry.name, 'package.json'))
+    ) {
+      targets.push(entry.name);
+    }
+  }
+  return targets;
+}
+
 function patchContextAwareSources(nodeModulesRoot) {
   const patched = [];
-  for (const pkg of CONTEXT_AWARE_PACKAGES) {
+  for (const pkg of discoverNativeTargets(nodeModulesRoot)) {
     const base = path.join(nodeModulesRoot, pkg);
     if (!fs.existsSync(path.join(base, 'package.json'))) {
       continue;
@@ -71,9 +128,10 @@ function patchContextAwareSources(nodeModulesRoot) {
             NODE_MODULE_RE,
             (match, mod, func) => {
               const sym = 'ca_register_' + mod + '_' + func.replace(/::/g, '_');
+              const callArgs = initCallArgs(text, func);
               return (
                 `static void ${sym}(v8::Local<v8::Object> exports, v8::Local<v8::Value> module, v8::Local<v8::Context> context, void* priv) {\n` +
-                `  ${func}(exports);\n` +
+                `  ${func}(${callArgs});\n` +
                 `}\n` +
                 `NODE_MODULE_CONTEXT_AWARE(${mod}, ${sym})`
               );
