@@ -35,8 +35,11 @@ module.exports = function(ci) {
   );
   const patchedGyp = path.join(__dirname, '..', 'patches', 'node-gyp');
   if (fs.existsSync(patchedGyp)) {
-    childProcess.execFileSync('rm', ['-rf', bundledGyp]);
-    childProcess.execFileSync('cp', ['-a', patchedGyp, bundledGyp]);
+    // fs-level copy (not cp -a): dereference symlinks so the swap also works
+    // on Windows, where creating symlinks requires special privileges.
+    const fsExtra = require('fs-extra');
+    fsExtra.removeSync(bundledGyp);
+    fsExtra.copySync(patchedGyp, bundledGyp, { dereference: true });
     console.log('Patched apm node-gyp to 9.4.1');
   }
   console.log('Rebuilding apm native modules');
