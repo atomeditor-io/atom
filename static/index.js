@@ -14,6 +14,13 @@
   let blobStore = null;
   let useSnapshot = false;
 
+  // Rung 2+ (tmiland-lab fork): install the electron.remote shim at entry,
+  // before anything else. The entry point always executes, while other
+  // modules may be served from the startup snapshot cache without
+  // re-executing (which silently skips the shim and breaks legacy
+  // `require('electron').remote` consumers such as the github package).
+  require('../src/electron-shims');
+
   const startupMarkers = remote.getCurrentWindow().startupMarkers;
 
   if (startupMarkers) {
