@@ -14,7 +14,7 @@
   "license": "MIT",
   "electronVersion": "36.9.5",
   "dependencies": {
-    "@atom/fuzzy-native": "^1.2.1",
+    "@atom/fuzzy-native": "git+https://github.com/tmiland-lab/fuzzy-native.git#electron-modern",
     "@atom/nsfw": "^1.0.28",
     "@atom/source-map-support": "^0.3.4",
     "@atom/watcher": "git+https://github.com/tmiland-lab/watcher.git#electron-modern",
