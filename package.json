@@ -15,7 +15,7 @@
   "electronVersion": "36.9.5",
   "dependencies": {
     "@atom/fuzzy-native": "git+https://github.com/tmiland-lab/fuzzy-native.git#electron-modern",
-    "@atom/nsfw": "^1.0.28",
+    "@atom/nsfw": "git+https://github.com/tmiland-lab/nsfw.git#electron-modern",
     "@atom/source-map-support": "^0.3.4",
     "@atom/watcher": "git+https://github.com/tmiland-lab/watcher.git#electron-modern",
     "about": "file:packages/about",
@@ -154,6 +154,7 @@
     "solarized-dark-syntax": "file:packages/solarized-dark-syntax",
     "solarized-light-syntax": "file:packages/solarized-light-syntax",
     "spell-check": "git+https://github.com/atom/spell-check.git#df4dfeb",
+    "spellchecker": "git+https://github.com/tmiland-lab/spellchecker.git#electron-modern",
     "status-bar": "git+https://github.com/atom/status-bar.git#4edfaa8",
     "styleguide": "git+https://github.com/atom/styleguide.git#aa4f682",
     "superstring": "git+https://github.com/tmiland-lab/superstring#electron-modern",
