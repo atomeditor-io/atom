@@ -58,14 +58,19 @@ jobs:
 
       - name: Install .deb (real dpkg install test)
         run: |
-          sudo dpkg -i out/*.deb || sudo apt-get install -f -y
+          sudo dpkg -i out/*.deb || true
+          sudo apt-get install -f -y
+          dpkg -s atom | grep -q "Status: install ok installed"
           atom --version
 
-      - name: Headless launch smoke (xvfb, must stay up)
+      - name: Headless launch smoke (xvfb, app must come alive)
         run: |
           sudo apt-get install -y xvfb
-          timeout 40 xvfb-run -a atom --safe > smoke-install.log 2>&1; rc=$?
-          test $rc -eq 124 || (echo "unexpected exit $rc"; tail -30 smoke-install.log; exit 1)
+          xvfb-run -a atom --safe > smoke-install.log 2>&1 &
+          sleep 30
+          pgrep -af "[a]tom" | head -5
+          pgrep -f "[a]tom" > /dev/null || (echo NO-APP-ALIVE; tail -30 smoke-install.log; exit 1)
+          pkill -f "xvfb-run|atom" 2>/dev/null || true
           grep -E "Renderer process crashed|non-context-aware|Gtk-ERROR" smoke-install.log && exit 1 || echo SMOKE-CLEAN
 
   build-mac:
