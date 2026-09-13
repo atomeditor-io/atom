@@ -36,7 +36,7 @@ export default class WelcomeView {
       <div className="welcome">
         <div className="welcome-container">
           <header className="welcome-header">
-            <a href="https://atom.io/">
+            <a href="https://atomeditor.io">
               <svg
                 className="welcome-logo"
                 width="330px"
@@ -99,29 +99,29 @@ export default class WelcomeView {
               <li>
                 The{' '}
                 <a
-                  href="https://www.atom.io/docs"
+                  href="https://github.com/atomeditor-io/atom/wiki"
                   dataset={{ event: 'atom-docs' }}
                 >
-                  Atom docs
+                  Atom wiki
                 </a>{' '}
                 for Guides and the API reference.
               </li>
               <li>
                 The Atom forum at{' '}
                 <a
-                  href="https://github.com/atom/atom/discussions"
+                  href="https://github.com/atomeditor-io/atom/discussions"
                   dataset={{ event: 'discussions' }}
                 >
-                  Github Discussions
+                  GitHub Discussions
                 </a>
               </li>
               <li>
                 The{' '}
                 <a
-                  href="https://github.com/atom"
+                  href="https://github.com/atomeditor-io"
                   dataset={{ event: 'atom-org' }}
                 >
-                  Atom org
+                  Atom editor org
                 </a>
                 . This is where all GitHub-created Atom packages can be found.
               </li>
@@ -141,8 +141,8 @@ export default class WelcomeView {
           </section>
 
           <footer className="welcome-footer">
-            <a href="https://atom.io/" dataset={{ event: 'footer-atom-io' }}>
-              atom.io
+            <a href="https://atomeditor.io" dataset={{ event: 'footer-atom-io' }}>
+              atomeditor.io
             </a>{' '}
             <span className="text-subtle">×</span>{' '}
             <a
