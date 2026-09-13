@@ -238,6 +238,52 @@ function reseedNestedNativeCopies(repositoryRootPath, nodeModulesRoot, pkg) {
   }
 }
 
+// Suppress startup DeprecationWarnings that clutter console/devtools:
+// - DEP0180 (fs.Stats) is emitted by Electron's asar shim when yargs guesses
+//   its package version by statting Up through app.asar at module load
+//   (escalade/pkgUp). yargs' own callers (src/main-process, apm) pass an
+//   explicit version, so the guess is dead weight -> make it constant.
+// - React 16 "componentWillReceiveProps has been renamed" warning is raised
+//   by github package views that still use the plain lifecycle name; rename
+//   to the sanctioned UNSAFE_ form (same behavior, warning suppressed).
+function patchDeprecatedUsage(nodeModulesRoot) {
+  const files = [
+    {
+      relative: ['yargs', 'build', 'index.cjs'],
+      marker: 'pkgUp()',
+      re: /function guessVersion\(\)\s*\{[\s\S]*?return obj\.version \|\| 'unknown';\s*\}/,
+      replacement: "function guessVersion() {\n        return 'unknown';\n    }"
+    },
+    {
+      relative: ['github', 'lib', 'views', 'git-timings-view.js'],
+      marker: 'componentWillReceiveProps(',
+      re: /^  componentWillReceiveProps\(/m,
+      replacement: '  UNSAFE_componentWillReceiveProps('
+    },
+    {
+      relative: ['github', 'lib', 'atom', 'commands.js'],
+      marker: 'componentWillReceiveProps(',
+      re: /^  componentWillReceiveProps\(/m,
+      replacement: '  UNSAFE_componentWillReceiveProps('
+    }
+  ];
+  for (const file of files) {
+    const filePath = path.join(nodeModulesRoot, ...file.relative);
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+    const contents = fs.readFileSync(filePath, 'utf8');
+    if (!contents.includes(file.marker) || file.re.test(contents)) {
+      continue;
+    }
+    const patched = contents.replace(file.re, file.replacement);
+    if (patched !== contents) {
+      fs.writeFileSync(filePath, patched);
+      console.log(`Patched ${file.relative.join('/')} (deprecation warning)`);
+    }
+  }
+}
+
 function patchSuperstringSources(nodeModulesRoot) {
   const headerPath = path.join(
     nodeModulesRoot,
@@ -321,6 +367,7 @@ function removeNodeGypBins(nodeModulesRoot) {
 
 module.exports = function patchNodeModules() {
   const root = path.join(CONFIG.repositoryRootPath, 'node_modules');
+  patchDeprecatedUsage(root);
   const patched = patchSuperstringSources(root);
   removeNodeGypBins(root);
   if (patched && !superstringIsBuilt(root)) {
