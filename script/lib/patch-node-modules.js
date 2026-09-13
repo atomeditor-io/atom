@@ -284,6 +284,71 @@ function patchDeprecatedUsage(nodeModulesRoot) {
   }
 }
 
+// atom.io API is permanently dead (301 → sunset page). The notifications
+// package fetches atom.io/api/updates and atom.io/api/packages/<name> during
+// renderFatalError. Both return non-OK → Promise.reject() → Promise.all in
+// notification-element.js rejects → the "Create issue on the X package" click
+// handler is never wired up → the button does nothing. Fix: resolve null
+// instead of rejecting, add null guards in the callers, and add a ["catch"] on
+// the Promise.all so the button always wires up even if something else rejects.
+// Also make the is.gd shortener fall back to the long issue URL instead of null
+// (shell.openExternal(null) would otherwise do nothing on Linux).
+function patchDeadAtomApiNotifications(nodeModulesRoot) {
+  const files = [
+    {
+      relative: ['notifications', 'lib', 'user-utilities.js'],
+      replacements: [
+        ['return Promise.reject(r.statusCode);', 'return Promise.resolve(null);'],
+        [
+          'checkAtomUpToDate: function() {\n      return this.getLatestAtomData().then(function(latestAtomData) {',
+          'checkAtomUpToDate: function() {\n      return this.getLatestAtomData().then(function(latestAtomData) {\n        if (latestAtomData == null) { return null; }'
+        ],
+        [
+          'return function(latestPackageData) {\n          var installedVersion, isCore, latestVersion, upToDate, versionShippedWithAtom;',
+          'return function(latestPackageData) {\n            if (latestPackageData == null) { return null; }\n          var installedVersion, isCore, latestVersion, upToDate, versionShippedWithAtom;'
+        ]
+      ]
+    },
+    {
+      relative: ['notifications', 'lib', 'notification-issue.js'],
+      replacements: [
+        [
+          '        })["catch"](function(e) {\n          return null;\n        });\n      });\n    };',
+          '        })["catch"](function(e) {\n          return issueUrl;\n        });\n      });\n    };'
+        ]
+      ]
+    },
+    {
+      relative: ['notifications', 'lib', 'notification-element.js'],
+      replacements: [
+        [
+          '        })(this));\n      } else {',
+          '        })(this));\n        ["catch"](function() {\n          issueButton.addEventListener(\'click\', function(e) {\n            e.preventDefault();\n            issueButton.classList.add(\'opening\');\n            return _this.issue.getIssueUrlForSystem().then(function(issueUrl) {\n              shell.openExternal(issueUrl);\n              return issueButton.classList.remove(\'opening\');\n            });\n          });\n          fatalNotification.innerHTML += " You can help by creating an issue. Please explain what actions triggered this error.";\n        });\n      } else {'
+        ]
+      ]
+    }
+  ];
+  for (const file of files) {
+    const filePath = path.join(nodeModulesRoot, ...file.relative);
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+    let contents = fs.readFileSync(filePath, 'utf8');
+    let anyPatched = false;
+    for (const [from, to] of file.replacements) {
+      if (!contents.includes(from) || contents.includes(to)) {
+        continue;
+      }
+      contents = contents.split(from).join(to);
+      anyPatched = true;
+    }
+    if (anyPatched) {
+      fs.writeFileSync(filePath, contents);
+      console.log(`Patched ${file.relative.join('/')} (dead atom.io API / create-issue button)`);
+    }
+  }
+}
+
 function patchSuperstringSources(nodeModulesRoot) {
   const headerPath = path.join(
     nodeModulesRoot,
@@ -368,6 +433,7 @@ function removeNodeGypBins(nodeModulesRoot) {
 module.exports = function patchNodeModules() {
   const root = path.join(CONFIG.repositoryRootPath, 'node_modules');
   patchDeprecatedUsage(root);
+  patchDeadAtomApiNotifications(root);
   const patched = patchSuperstringSources(root);
   removeNodeGypBins(root);
   if (patched && !superstringIsBuilt(root)) {
