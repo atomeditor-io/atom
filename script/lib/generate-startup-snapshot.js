@@ -364,7 +364,10 @@ module.exports = function(packagedAppPath) {
     );
 
     console.log('Generating startup blob with mksnapshot');
-    childProcess.spawnSync(process.execPath, [
+    console.log(
+      `mksnapshot env: platform=${process.platform} arch=${process.arch} execPath=${process.execPath} output=${CONFIG.buildOutputPath}`
+    );
+    const mksnapshotResult = childProcess.spawnSync(process.execPath, [
       path.join(
         CONFIG.repositoryRootPath,
         'script',
@@ -376,6 +379,20 @@ module.exports = function(packagedAppPath) {
       '--output_dir',
       CONFIG.buildOutputPath
     ]);
+    console.log(
+      `mksnapshot status=${mksnapshotResult.status} signal=${mksnapshotResult.signal}`
+    );
+    if (mksnapshotResult.error) {
+      console.log(
+        `mksnapshot spawn error: ${mksnapshotResult.error.stack || mksnapshotResult.error}`
+      );
+    }
+    if (mksnapshotResult.stdout) {
+      process.stdout.write(`mksnapshot stdout:\n${mksnapshotResult.stdout}\n`);
+    }
+    if (mksnapshotResult.stderr) {
+      process.stderr.write(`mksnapshot stderr:\n${mksnapshotResult.stderr}\n`);
+    }
 
     let startupBlobDestinationPath;
     if (process.platform === 'darwin') {
