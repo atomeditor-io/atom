@@ -5,6 +5,20 @@ import WelcomePackage from '../lib/welcome-package';
 import assert from 'assert';
 import { conditionPromise } from './helpers';
 
+function getPaneTitles() {
+  return atom.workspace
+    .getCenter()
+    .getPanes()
+    .map(pane => pane.getItems().map(item => item.getTitle()))
+    .reduce((all, titles) => all.concat(titles), []);
+}
+
+function getGuideView() {
+  return atom.workspace
+    .getPaneItems()
+    .find(item => item.getTitle() === 'Welcome Guide');
+}
+
 describe('Welcome', () => {
   let welcomePackage;
 
@@ -17,34 +31,19 @@ describe('Welcome', () => {
     atom.reset();
   });
 
-  describe("when `core.telemetryConsent` is 'undecided'", () => {
+  describe('when activated for the first time', () => {
     beforeEach(async () => {
-      atom.config.set('core.telemetryConsent', 'undecided');
       await welcomePackage.activate();
     });
 
-    it('opens the telemetry consent pane and the welcome panes', () => {
+    it('shows the welcome panes and the release news pane', () => {
       const panes = atom.workspace.getCenter().getPanes();
-      assert.equal(panes.length, 2);
-      assert.equal(panes[0].getItems()[0].getTitle(), 'Telemetry Consent');
-      assert.equal(panes[0].getItems()[1].getTitle(), 'Welcome');
-      assert.equal(panes[1].getItems()[0].getTitle(), 'Welcome Guide');
+      assert.equal(panes.length, 3);
+      const titles = getPaneTitles();
+      assert(titles.includes('Welcome'));
+      assert(titles.includes('Welcome Guide'));
+      assert(titles.includes('Release News'));
     });
-  });
-
-  describe('when `core.telemetryConsent` is not `undecided`', () => {
-    beforeEach(async () => {
-      atom.config.set('core.telemetryConsent', 'no');
-      await welcomePackage.activate();
-    });
-
-    describe('when activated for the first time', () =>
-      it('shows the welcome panes', () => {
-        const panes = atom.workspace.getCenter().getPanes();
-        assert.equal(panes.length, 2);
-        assert.equal(panes[0].getItems()[0].getTitle(), 'Welcome');
-        assert.equal(panes[1].getItems()[0].getTitle(), 'Welcome Guide');
-      }));
 
     describe('the welcome:show command', () => {
       it('shows the welcome buffer', async () => {
@@ -68,8 +67,7 @@ describe('Welcome', () => {
     describe('deserializing the pane items', () => {
       describe('when GuideView is deserialized', () => {
         it('remembers open sections', () => {
-          const panes = atom.workspace.getCenter().getPanes();
-          const guideView = panes[1].getItems()[0];
+          const guideView = getGuideView();
 
           guideView.element
             .querySelector('details[data-section="snippets"]')
@@ -103,10 +101,9 @@ describe('Welcome', () => {
     });
 
     describe('reporting events', () => {
-      let panes, guideView, reportedEvents;
+      let guideView, reportedEvents;
       beforeEach(() => {
-        panes = atom.workspace.getCenter().getPanes();
-        guideView = panes[1].getItems()[0];
+        guideView = getGuideView();
         reportedEvents = [];
 
         welcomePackage.reporterProxy.sendEvent = (...event) => {
@@ -150,35 +147,35 @@ describe('Welcome', () => {
         });
       });
     });
-
-    describe('when the reporter changes', () =>
-      it('sends all queued events', () => {
-        welcomePackage.reporterProxy.queue.length = 0;
-
-        const reporter1 = {
-          addCustomEvent(category, event) {
-            this.reportedEvents.push({ category, ...event });
-          },
-          reportedEvents: []
-        };
-        const reporter2 = {
-          addCustomEvent(category, event) {
-            this.reportedEvents.push({ category, ...event });
-          },
-          reportedEvents: []
-        };
-
-        welcomePackage.reporterProxy.sendEvent('foo', 'bar', 10);
-        welcomePackage.reporterProxy.sendEvent('foo2', 'bar2', 60);
-        welcomePackage.reporterProxy.setReporter(reporter1);
-
-        assert.deepEqual(reporter1.reportedEvents, [
-          { category: 'welcome-v1', ea: 'foo', el: 'bar', ev: 10 },
-          { category: 'welcome-v1', ea: 'foo2', el: 'bar2', ev: 60 }
-        ]);
-
-        welcomePackage.consumeReporter(reporter2);
-        assert.deepEqual(reporter2.reportedEvents, []);
-      }));
   });
+
+  describe('when the reporter changes', () =>
+    it('sends all queued events', () => {
+      welcomePackage.reporterProxy.queue.length = 0;
+
+      const reporter1 = {
+        addCustomEvent(category, event) {
+          this.reportedEvents.push({ category, ...event });
+        },
+        reportedEvents: []
+      };
+      const reporter2 = {
+        addCustomEvent(category, event) {
+          this.reportedEvents.push({ category, ...event });
+        },
+        reportedEvents: []
+      };
+
+      welcomePackage.reporterProxy.sendEvent('foo', 'bar', 10);
+      welcomePackage.reporterProxy.sendEvent('foo2', 'bar2', 60);
+      welcomePackage.reporterProxy.setReporter(reporter1);
+
+      assert.deepEqual(reporter1.reportedEvents, [
+        { category: 'welcome-v1', ea: 'foo', el: 'bar', ev: 10 },
+        { category: 'welcome-v1', ea: 'foo2', el: 'bar2', ev: 60 }
+      ]);
+
+      welcomePackage.consumeReporter(reporter2);
+      assert.deepEqual(reporter2.reportedEvents, []);
+    }));
 });
