@@ -4,8 +4,8 @@
 import etch from 'etch';
 
 const RELEASES_API_URL =
-  'https://api.github.com/repos/tmiland-lab/atom/releases/latest';
-const RELEASES_HTML_URL = 'https://github.com/tmiland-lab/atom/releases';
+  'https://api.github.com/repos/atomeditor-io/atom/releases/latest';
+const RELEASES_HTML_URL = 'https://github.com/atomeditor-io/atom/releases';
 
 let shell = null;
 function getShell() {
@@ -191,10 +191,10 @@ export default class NewsView {
 
           <footer className="welcome-footer">
             <a
-              href="https://github.com/tmiland-lab/atom"
+              href="https://github.com/atomeditor-io/atom"
               dataset={{ event: 'footer-repo' }}
             >
-              tmiland-lab/atom
+              atomeditor-io/atom
             </a>{' '}
             <span className="text-subtle">×</span>{' '}
             <a
@@ -229,7 +229,7 @@ export default class NewsView {
           <p>
             You can always find the newest builds at{' '}
             <a href={RELEASES_HTML_URL} dataset={{ event: 'releases-page' }}>
-              github.com/tmiland-lab/atom/releases
+              github.com/atomeditor-io/atom/releases
             </a>
             .
           </p>
