@@ -296,34 +296,37 @@ function patchDeprecatedUsage(nodeModulesRoot) {
 function patchDeadAtomApiNotifications(nodeModulesRoot) {
   const files = [
     {
-      relative: ['notifications', 'lib', 'user-utilities.js'],
+      relative: ['notifications', 'lib', 'user-utilities.coffee'],
       replacements: [
-        ['return Promise.reject(r.statusCode);', 'return Promise.resolve(null);'],
         [
-          'checkAtomUpToDate: function() {\n      return this.getLatestAtomData().then(function(latestAtomData) {',
-          'checkAtomUpToDate: function() {\n      return this.getLatestAtomData().then(function(latestAtomData) {\n        if (latestAtomData == null) { return null; }'
+          '      .then (r) -> if r.ok then r.json() else Promise.reject r.statusCode',
+          '      .then (r) -> if r.ok then r.json() else Promise.resolve null'
         ],
         [
-          'return function(latestPackageData) {\n          var installedVersion, isCore, latestVersion, upToDate, versionShippedWithAtom;',
-          'return function(latestPackageData) {\n            if (latestPackageData == null) { return null; }\n          var installedVersion, isCore, latestVersion, upToDate, versionShippedWithAtom;'
+          '  checkAtomUpToDate: ->\n    @getLatestAtomData().then (latestAtomData) ->\n      installedVersion = atom.getVersion()?.replace(/-.*$/, \'\')',
+          '  checkAtomUpToDate: ->\n    @getLatestAtomData().then (latestAtomData) ->\n      return null unless latestAtomData?\n      installedVersion = atom.getVersion()?.replace(/-.*$/, \'\')'
+        ],
+        [
+          '  checkPackageUpToDate: (packageName) ->\n    @getLatestPackageData(packageName).then (latestPackageData) =>\n      installedVersion = @getPackageVersion(packageName)',
+          '  checkPackageUpToDate: (packageName) ->\n    @getLatestPackageData(packageName).then (latestPackageData) =>\n      return null unless latestPackageData?\n      installedVersion = @getPackageVersion(packageName)'
         ]
       ]
     },
     {
-      relative: ['notifications', 'lib', 'notification-issue.js'],
+      relative: ['notifications', 'lib', 'notification-issue.coffee'],
       replacements: [
         [
-          '        })["catch"](function(e) {\n          return null;\n        });\n      });\n    };',
-          '        })["catch"](function(e) {\n          return issueUrl;\n        });\n      });\n    };'
+          '      .then (r) -> r.text()\n      .catch (e) -> null',
+          '      .then (r) -> r.text()\n      .catch (e) -> issueUrl'
         ]
       ]
     },
     {
-      relative: ['notifications', 'lib', 'notification-element.js'],
+      relative: ['notifications', 'lib', 'notification-element.coffee'],
       replacements: [
         [
-          '        })(this));\n      } else {',
-          '        })(this));\n        ["catch"](function() {\n          issueButton.addEventListener(\'click\', function(e) {\n            e.preventDefault();\n            issueButton.classList.add(\'opening\');\n            return _this.issue.getIssueUrlForSystem().then(function(issueUrl) {\n              shell.openExternal(issueUrl);\n              return issueButton.classList.remove(\'opening\');\n            });\n          });\n          fatalNotification.innerHTML += " You can help by creating an issue. Please explain what actions triggered this error.";\n        });\n      } else {'
+          '        return\n    else\n      Promise.resolve()',
+          '        return\n      .catch (e) =>\n        fatalNotification.innerHTML += " You can help by creating an issue. Please explain what actions triggered this error."\n        issueButton.addEventListener \'click\', (e) =>\n          e.preventDefault()\n          issueButton.classList.add(\'opening\')\n          @issue.getIssueUrlForSystem().then (issueUrl) ->\n            shell.openExternal(issueUrl)\n            issueButton.classList.remove(\'opening\')\n    else\n      Promise.resolve()'
         ]
       ]
     }
