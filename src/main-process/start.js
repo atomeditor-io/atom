@@ -4,6 +4,12 @@ const { app } = require('electron');
 // --gtk-version=3 resurrects the app; without it the main process aborts on
 // any distro with libgtk-4 installed).
 app.commandLine.appendSwitch('gtk-version', '3');
+// atomeditor.io fork: the original atom.io package API is dead (sunset). Point
+// apm (and the settings-view Install pane, which spawns it) at our static,
+// GitHub-backed registry. Respect an explicit ATOM_API_URL so users can override.
+if (!process.env.ATOM_API_URL) {
+  process.env.ATOM_API_URL = 'https://atomeditor.io/api';
+}
 const nslog = require('nslog');
 const path = require('path');
 const temp = require('temp');
