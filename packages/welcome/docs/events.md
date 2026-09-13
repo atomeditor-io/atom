@@ -21,14 +21,14 @@ Currently the Welcome package does not log any timing events.
   | ----- | ---------------------- |
   | `ea`  | `show-on-initial-load` |
 
-#### Sunsetting announcement shown
+#### Release news shown
 
-- **eventType**: `sunsetting-v1`
+- **eventType**: `welcome-v1`
 - **metadata**
 
-  | field | value                             |
-  | ----- | --------------------------------- |
-  | `ea`  | `show-sunsetting-on-initial-load` |
+  | field | value                                 |
+  | ----- | ------------------------------------- |
+  | `ea`  | `show-releases-on-initial-load`       |
 
 #### Click on links
 
