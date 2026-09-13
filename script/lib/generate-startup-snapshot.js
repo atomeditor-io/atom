@@ -403,19 +403,25 @@ module.exports = function(packagedAppPath) {
 
     const snapshotBinaries = ['v8_context_snapshot.bin', 'snapshot_blob.bin'];
     for (let snapshotBinary of snapshotBinaries) {
+      let sourceName = snapshotBinary;
       let destinationPath = path.join(
         startupBlobDestinationPath,
         snapshotBinary
       );
-      if (
-        process.platform === 'darwin' &&
-        snapshotBinary === 'v8_context_snapshot.bin'
-      ) {
-        // TODO: check if we're building for arm64 and use the arm64 version of the binary
-        destinationPath = path.join(
-          startupBlobDestinationPath,
-          'v8_context_snapshot.x86_64.bin'
-        );
+      if (process.platform === 'darwin') {
+        // electron-mksnapshot writes an arch-suffixed context snapshot on mac.
+        // The binary embeds the x86_64 or arm64 variant matching the runner's
+        // arch (x64 here, also selected when running under Rosetta).
+        if (snapshotBinary === 'v8_context_snapshot.bin') {
+          sourceName =
+            process.arch === 'arm64'
+              ? 'v8_context_snapshot.arm64.bin'
+              : 'v8_context_snapshot.x86_64.bin';
+          destinationPath = path.join(
+            startupBlobDestinationPath,
+            sourceName
+          );
+        }
       }
       console.log(`Moving generated startup blob into "${destinationPath}"`);
       try {
@@ -427,7 +433,7 @@ module.exports = function(packagedAppPath) {
         }
       }
       fs.renameSync(
-        path.join(CONFIG.buildOutputPath, snapshotBinary),
+        path.join(CONFIG.buildOutputPath, sourceName),
         destinationPath
       );
     }
