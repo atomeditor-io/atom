@@ -1,6 +1,6 @@
 /** @babel */
 
-import { remote } from 'electron';
+import remote from '@electron/remote';
 import atomPaths from '../src/atom-paths';
 import fs from 'fs-plus';
 import path from 'path';

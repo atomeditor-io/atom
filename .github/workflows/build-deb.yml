@@ -1,0 +1,157 @@
+name: build-deb
+
+on:
+  push:
+    tags: ["v[0-9]*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "12.22.12"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxkbfile-dev libsecret-1-dev libx11-dev libxext-dev fakeroot rpm
+
+      - name: Build Atom + .deb/.rpm
+        env:
+          ATOM_ELECTRON_URL: https://electronjs.org/headers
+          GYP_DEFINES: "openssl_fips= "
+          npm_config_node_gyp: ${{ github.workspace }}/script/patches/node-gyp/bin/node-gyp.js
+        run: ./script/build --create-debian-package --create-rpm-package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atom-packages
+          path: |
+            out/*.deb
+            out/*.rpm
+
+      - name: Publish packages to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/*.deb
+            out/*.rpm
+
+  test-install:
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: atom-packages
+          path: out
+
+      - name: Install .deb (real dpkg install test)
+        run: |
+          sudo dpkg -i out/*.deb || true
+          sudo apt-get install -f -y
+          dpkg -s atom | grep -q "Status: install ok installed"
+          atom --version
+
+      - name: Headless launch smoke (xvfb, app must come alive)
+        run: |
+          sudo apt-get install -y xvfb
+          timeout 40 xvfb-run -a atom --safe > smoke-install.log 2>&1
+          rc=$?
+          echo "smoke rc=$rc"
+          case $rc in
+            0)   pgrep -x atom > /dev/null || { echo NO-APP-ALIVE; tail -30 smoke-install.log; exit 1; } ;;
+            124) : ;;  # app stayed alive until the timeout killed it
+            *)   echo "crash rc=$rc"; tail -30 smoke-install.log; exit 1 ;;
+          esac
+          echo APP-ALIVE
+          grep -E "Renderer process crashed|non-context-aware|Gtk-ERROR" smoke-install.log && { echo CRASH-STR; exit 1; } || echo SMOKE-CLEAN
+
+  build-mac:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # Node 12 never shipped darwin/arm64 binaries; run the x64 build
+      # under Rosetta (matches upstream Atom, which was x64-only on mac).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "12.22.12"
+          architecture: "x64"
+
+      # Vendored node-gyp needs distutils (gone in Python 3.12+).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build Atom mac zip (unsigned)
+        env:
+          ATOM_ELECTRON_URL: https://electronjs.org/headers
+          GYP_DEFINES: "openssl_fips= "
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          npm_config_node_gyp: ${{ github.workspace }}/script/patches/node-gyp/bin/node-gyp.js
+        run: ./script/build --compress-artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atom-mac
+          path: out/atom-mac.zip
+
+      - name: Publish mac zip to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/atom-mac.zip
+
+  build-win:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "12.22.12"
+
+      # Vendored node-gyp needs distutils (gone in Python 3.12+).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build Atom Windows installer (unsigned)
+        env:
+          ATOM_ELECTRON_URL: https://electronjs.org/headers
+          GYP_DEFINES: "openssl_fips= "
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          npm_config_node_gyp: ${{ github.workspace }}/script/patches/node-gyp/bin/node-gyp.js
+        run: node script/build --create-windows-installer
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atom-win
+          path: |
+            out/*.exe
+            out/*.nupkg
+            out/RELEASES*
+
+      - name: Publish Windows installer to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/*.exe
+            out/*.nupkg
+            out/RELEASES*

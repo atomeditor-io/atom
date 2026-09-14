@@ -41,7 +41,7 @@ module.exports = function() {
 
       // Run `apm install` in the *root* package's path, so we get devDeps w/o apm's weird caching
       // Then copy this folder into the intermediate package's path so we can run the transpilation in-line.
-      runApmInstall(rootPackagePath);
+      runApmInstall(rootPackagePath, false, undefined, { npm_config_ignore_scripts: "true" });
       if (fs.existsSync(intermediatePackageBackup.nodeModulesPath)) {
         fs.removeSync(intermediatePackageBackup.nodeModulesPath);
       }

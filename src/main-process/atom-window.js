@@ -5,6 +5,10 @@ const {
   ipcMain,
   nativeImage
 } = require('electron');
+const electronRemote = require('@electron/remote/main');
+// Rung 2 (tmiland-lab fork): Electron 14 removed the built-in remote module;
+// @electron/remote provides it. initialize() once, then enable() per window.
+electronRemote.initialize();
 const getAppName = require('../get-app-name');
 const path = require('path');
 const url = require('url');
@@ -55,10 +59,14 @@ module.exports = class AtomWindow extends EventEmitter {
         // (Ref: https://github.com/atom/atom/pull/12696#issuecomment-290496960)
         disableBlinkFeatures: 'Auxclick',
         nodeIntegration: true,
+        // Rung 2 (tmiland-lab fork): Electron 12+ defaults contextIsolation to
+        // true, which disables nodeIntegration and the remote bridge in the
+        // page. Pulsar sets this explicitly; Atom 1.63 needs whole-page node.
+        contextIsolation: false,
         webviewTag: true,
 
-        // TodoElectronIssue: remote module is deprecated https://www.electronjs.org/docs/breaking-changes#default-changed-enableremotemodule-defaults-to-false
-        enableRemoteModule: true,
+        // Rung 2 (tmiland-lab fork): Electron 14 removed enableRemoteModule;
+        // @electron/remote/main.enable() below replaces it.
         // node support in threads
         nodeIntegrationInWorker: true
       },
@@ -77,6 +85,9 @@ module.exports = class AtomWindow extends EventEmitter {
     const BrowserWindowConstructor =
       settings.browserWindowConstructor || BrowserWindow;
     this.browserWindow = new BrowserWindowConstructor(options);
+
+    // Rung 2 (tmiland-lab fork): per-window enablement for @electron/remote.
+    electronRemote.enable(this.browserWindow.webContents);
 
     Object.defineProperty(this.browserWindow, 'loadSettingsJSON', {
       get: () =>
@@ -250,7 +261,7 @@ module.exports = class AtomWindow extends EventEmitter {
         buttons: ['Close Window', 'Reload', 'Keep It Open'],
         cancelId: 2, // Canceling should be the least destructive action
         message: 'The editor has crashed',
-        detail: 'Please report this issue to https://github.com/atom/atom'
+        detail: 'Please report this issue to https://github.com/atomeditor-io/atom/issues'
       });
 
       switch (result.response) {

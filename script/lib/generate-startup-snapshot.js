@@ -13,7 +13,59 @@ module.exports = function(packagedAppPath) {
     'shell',
     'WNdb',
     'lapack',
-    'remote'
+    'remote',
+    // Modern Node core modules unknown to the build-era builtinModules list
+    // (the snapshot walker queues anything not in here as a file). Modules
+    // that genuinely do not exist in the target runtime still only fail when
+    // actually required at runtime.
+    'diagnostics_channel',
+    'node:test',
+    'test',
+    'trace_events',
+    'inspector',
+    'v8',
+    'async_hooks',
+    'http2',
+    'net',
+    'tls',
+    'dns',
+    'dns/promises',
+    'fs/promises',
+    'path',
+    'os',
+    'util',
+    'crypto',
+    'zlib',
+    'readline',
+    'repl',
+    'vm',
+    'worker_threads',
+    'perf_hooks',
+    'stream',
+    'stream/promises',
+    'stream/web',
+    'string_decoder',
+    'timers',
+    'timers/promises',
+    'tty',
+    'url',
+    'events',
+    'http',
+    'https',
+    'assert',
+    'assert/strict',
+    'buffer',
+    'child_process',
+    'cluster',
+    'console',
+    'constants',
+    'dgram',
+    'domain',
+    'process',
+    'punycode',
+    'querystring',
+    'sys',
+    'udp4'
   ]);
   const baseDirPath = path.join(CONFIG.intermediateAppPath, 'static');
   let processedFiles = 0;
@@ -29,6 +81,18 @@ module.exports = function(packagedAppPath) {
     cachePath: path.join(CONFIG.atomHomeDirPath, 'snapshot-cache'),
     auxiliaryData: CONFIG.snapshotAuxiliaryData,
     shouldExcludeModule: ({ requiringModulePath, requiredModulePath }) => {
+      // tmiland-lab fork: bare module names reaching this callback are
+      // requires the walker could not resolve to a file — modern Node core
+      // modules/subpaths (util/types, diagnostics_channel, node:test, …)
+      // unknown to the build-era builtinModules list. They are never files
+      // in the bundle; leave them as runtime requires.
+      if (
+        !requiredModulePath.startsWith("./") &&
+        !requiredModulePath.startsWith("../") &&
+        !path.isAbsolute(requiredModulePath)
+      ) {
+        return true;
+      }
       if (processedFiles > 0) {
         process.stdout.write('\r');
       }
@@ -300,7 +364,10 @@ module.exports = function(packagedAppPath) {
     );
 
     console.log('Generating startup blob with mksnapshot');
-    childProcess.spawnSync(process.execPath, [
+    console.log(
+      `mksnapshot env: platform=${process.platform} arch=${process.arch} execPath=${process.execPath} output=${CONFIG.buildOutputPath}`
+    );
+    const mksnapshotResult = childProcess.spawnSync(process.execPath, [
       path.join(
         CONFIG.repositoryRootPath,
         'script',
@@ -312,6 +379,20 @@ module.exports = function(packagedAppPath) {
       '--output_dir',
       CONFIG.buildOutputPath
     ]);
+    console.log(
+      `mksnapshot status=${mksnapshotResult.status} signal=${mksnapshotResult.signal}`
+    );
+    if (mksnapshotResult.error) {
+      console.log(
+        `mksnapshot spawn error: ${mksnapshotResult.error.stack || mksnapshotResult.error}`
+      );
+    }
+    if (mksnapshotResult.stdout) {
+      process.stdout.write(`mksnapshot stdout:\n${mksnapshotResult.stdout}\n`);
+    }
+    if (mksnapshotResult.stderr) {
+      process.stderr.write(`mksnapshot stderr:\n${mksnapshotResult.stderr}\n`);
+    }
 
     let startupBlobDestinationPath;
     if (process.platform === 'darwin') {
@@ -322,19 +403,25 @@ module.exports = function(packagedAppPath) {
 
     const snapshotBinaries = ['v8_context_snapshot.bin', 'snapshot_blob.bin'];
     for (let snapshotBinary of snapshotBinaries) {
+      let sourceName = snapshotBinary;
       let destinationPath = path.join(
         startupBlobDestinationPath,
         snapshotBinary
       );
-      if (
-        process.platform === 'darwin' &&
-        snapshotBinary === 'v8_context_snapshot.bin'
-      ) {
-        // TODO: check if we're building for arm64 and use the arm64 version of the binary
-        destinationPath = path.join(
-          startupBlobDestinationPath,
-          'v8_context_snapshot.x86_64.bin'
-        );
+      if (process.platform === 'darwin') {
+        // electron-mksnapshot writes an arch-suffixed context snapshot on mac.
+        // The binary embeds the x86_64 or arm64 variant matching the runner's
+        // arch (x64 here, also selected when running under Rosetta).
+        if (snapshotBinary === 'v8_context_snapshot.bin') {
+          sourceName =
+            process.arch === 'arm64'
+              ? 'v8_context_snapshot.arm64.bin'
+              : 'v8_context_snapshot.x86_64.bin';
+          destinationPath = path.join(
+            startupBlobDestinationPath,
+            sourceName
+          );
+        }
       }
       console.log(`Moving generated startup blob into "${destinationPath}"`);
       try {
@@ -346,7 +433,7 @@ module.exports = function(packagedAppPath) {
         }
       }
       fs.renameSync(
-        path.join(CONFIG.buildOutputPath, snapshotBinary),
+        path.join(CONFIG.buildOutputPath, sourceName),
         destinationPath
       );
     }

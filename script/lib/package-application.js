@@ -15,6 +15,7 @@ const CONFIG = require('../config');
 const HOST_ARCH = hostArch();
 
 module.exports = function() {
+  require("./patch-node-modules").scrub(CONFIG.intermediateAppPath);
   const appName = getAppName();
   console.log(
     `Running electron-packager on ${
@@ -167,16 +168,32 @@ function setAtomHelperVersion(packagedAppPath) {
     'Info.plist'
   );
   console.log(`Setting Atom Helper Version for ${helperPListPath}`);
-  spawnSync('/usr/libexec/PlistBuddy', [
-    '-c',
-    `Add CFBundleVersion string ${CONFIG.appMetadata.version}`,
-    helperPListPath
-  ]);
-  spawnSync('/usr/libexec/PlistBuddy', [
-    '-c',
-    `Add CFBundleShortVersionString string ${CONFIG.appMetadata.version}`,
-    helperPListPath
-  ]);
+  try {
+    spawnSync('/usr/libexec/PlistBuddy', [
+      '-c',
+      `Add CFBundleVersion string ${CONFIG.appMetadata.version}`,
+      helperPListPath
+    ]);
+  } catch (error) {
+    spawnSync('/usr/libexec/PlistBuddy', [
+      '-c',
+      `Set CFBundleVersion string ${CONFIG.appMetadata.version}`,
+      helperPListPath
+    ]);
+  }
+  try {
+    spawnSync('/usr/libexec/PlistBuddy', [
+      '-c',
+      `Add CFBundleShortVersionString string ${CONFIG.appMetadata.version}`,
+      helperPListPath
+    ]);
+  } catch (error) {
+    spawnSync('/usr/libexec/PlistBuddy', [
+      '-c',
+      `Set CFBundleShortVersionString string ${CONFIG.appMetadata.version}`,
+      helperPListPath
+    ]);
+  }
 }
 
 function chmodNodeFiles(packagedAppPath) {

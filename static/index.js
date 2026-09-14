@@ -4,6 +4,7 @@
   const startWindowTime = Date.now();
 
   const electron = require('electron');
+  const remote = require('@electron/remote');
   const path = require('path');
   const Module = require('module');
   const getWindowLoadSettings = require('../src/get-window-load-settings');
@@ -13,7 +14,14 @@
   let blobStore = null;
   let useSnapshot = false;
 
-  const startupMarkers = electron.remote.getCurrentWindow().startupMarkers;
+  // Rung 2+ (tmiland-lab fork): install the electron.remote shim at entry,
+  // before anything else. The entry point always executes, while other
+  // modules may be served from the startup snapshot cache without
+  // re-executing (which silently skips the shim and breaks legacy
+  // `require('electron').remote` consumers such as the github package).
+  require('../src/electron-shims');
+
+  const startupMarkers = remote.getCurrentWindow().startupMarkers;
 
   if (startupMarkers) {
     StartupTime.importData(startupMarkers);
@@ -121,7 +129,7 @@
   }
 
   function handleSetupError(error) {
-    const currentWindow = electron.remote.getCurrentWindow();
+    const currentWindow = remote.getCurrentWindow();
     currentWindow.setSize(800, 600);
     currentWindow.center();
     currentWindow.show();
@@ -141,10 +149,6 @@
       : require('../src/module-cache');
     ModuleCache.register(getWindowLoadSettings());
 
-    const startCrashReporter = useSnapshot
-      ? snapshotResult.customRequire('../src/crash-reporter-start.js')
-      : require('../src/crash-reporter-start');
-
     useSnapshot
       ? snapshotResult.customRequire(
           '../node_modules/document-register-element/build/document-register-element.node.js'
@@ -163,18 +167,6 @@
 
       return documentRegisterElement(type, options);
     };
-
-    const { userSettings, appVersion } = getWindowLoadSettings();
-    const uploadToServer =
-      userSettings &&
-      userSettings.core &&
-      userSettings.core.telemetryConsent === 'limited';
-    const releaseChannel = getReleaseChannel(appVersion);
-
-    startCrashReporter({
-      uploadToServer,
-      releaseChannel
-    });
 
     const CSON = useSnapshot
       ? snapshotResult.customRequire('../node_modules/season/lib/cson.js')
@@ -210,7 +202,7 @@
       });
     }
 
-    const webContents = electron.remote.getCurrentWindow().webContents;
+    const webContents = remote.getCurrentWindow().webContents;
     if (webContents.devToolsWebContents) {
       profile();
     } else {

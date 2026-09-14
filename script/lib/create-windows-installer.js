@@ -9,8 +9,10 @@ const CONFIG = require('../config');
 
 module.exports = packagedAppPath => {
   const archSuffix = process.arch === 'ia32' ? '' : '-' + process.arch;
-  const updateUrlPrefix =
-    process.env.ATOM_UPDATE_URL_PREFIX || 'https://atom.io';
+  const updateUrlPrefix = process.env.ATOM_UPDATE_URL_PREFIX;
+  const remoteReleases = updateUrlPrefix
+    ? `${updateUrlPrefix}/api/updates${archSuffix}?version=${CONFIG.computedAppVersion}`
+    : null;
   const options = {
     name: CONFIG.channelName,
     title: CONFIG.appName,
@@ -28,9 +30,7 @@ module.exports = packagedAppPath => {
     ),
     outputDirectory: CONFIG.buildOutputPath,
     noMsi: true,
-    remoteReleases: `${updateUrlPrefix}/api/updates${archSuffix}?version=${
-      CONFIG.computedAppVersion
-    }`,
+    remoteReleases,
     setupExe: `AtomSetup${process.arch === 'x64' ? '-x64' : ''}.exe`,
     setupIcon: path.join(
       CONFIG.repositoryRootPath,

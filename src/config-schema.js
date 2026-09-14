@@ -341,10 +341,10 @@ const configSchema = {
       },
       telemetryConsent: {
         description:
-          'Allow usage statistics and exception reports to be sent to the Atom team to help improve the product.',
-        title: 'Send Telemetry to the Atom Team',
+          'Allow usage statistics and exception reports to be sent to the project maintainers to help improve the product.',
+        title: 'Send Telemetry',
         type: 'string',
-        default: 'undecided',
+        default: 'no',
         enum: [
           {
             value: 'limited',
@@ -354,11 +354,6 @@ const configSchema = {
           {
             value: 'no',
             description: 'Do not send any telemetry data'
-          },
-          {
-            value: 'undecided',
-            description:
-              'Undecided (Atom will ask again next time it is launched)'
           }
         ]
       },
