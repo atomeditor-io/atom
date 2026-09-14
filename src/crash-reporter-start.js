@@ -9,8 +9,8 @@ module.exports = function(params) {
 
   crashReporter.start({
     productName: 'Atom',
-    companyName: 'GitHub',
-    submitURL: 'https://atom.io/crash_reports',
+    companyName: 'atomeditor-io',
+    submitURL: 'https://github.com/atomeditor-io/atom/issues',
     parsedUploadToServer,
     extra: { platformRelease, arch, releaseChannel }
   });
