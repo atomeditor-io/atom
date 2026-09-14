@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Community Discussions
+    url: https://github.com/atomeditor-io/atom/discussions
+    about: Join discussions, ask questions, or share ideas that aren't bug reports.
+  - name: Documentation (Flight Manual)
+    url: https://github.com/atomeditor-io/atom/wiki
+    about: Read the wiki for usage, configuration, and build guides.
