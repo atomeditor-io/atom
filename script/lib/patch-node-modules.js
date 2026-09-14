@@ -326,6 +326,26 @@ function patchDeadAtomApiNotifications(nodeModulesRoot) {
         [
           "    repoUrl = 'https://github.com/atom/atom' unless repoUrl?",
           "    repoUrl = 'https://github.com/atomeditor-io/atom' unless repoUrl?"
+        ],
+        [
+          "    repoUrl?.replace(/\\.git$/, '').replace(/^git\\+/, '')",
+          "    repoUrl?.replace(/\\.git$/, '').replace(/^git\\+/, '').replace(/^https:\\/\\/github\\.com\\/atom\\/(?=[^/]+\\/?$)/, 'https://github.com/atomeditor-io/')"
+        ],
+        [
+          'https://github.com/atom/.github/blob/master/CODE_OF_CONDUCT.md',
+          'https://github.com/atomeditor-io/atom/blob/master/CODE_OF_CONDUCT.md'
+        ],
+        [
+          'The Atom message board is the best place for getting support: https://discuss.atom.io',
+          'Discussions is the best place for getting support: https://github.com/atomeditor-io/atom/discussions'
+        ],
+        [
+          '    * Reproduced the problem in Safe Mode: <https://flight-manual.atom.io/hacking-atom/sections/debugging/#using-safe-mode>\n    * Followed all applicable steps in the debugging guide: <https://flight-manual.atom.io/hacking-atom/sections/debugging/>\n    * Checked the FAQs on the message board for common solutions: <https://discuss.atom.io/c/faq>\n    * Checked that your issue isn\'t already filed: <https://github.com/issues?q=is%3Aissue+user%3Aatom>',
+          '    * Reproduced the problem in Safe Mode\n    * Checked that your issue isn\'t already filed: <https://github.com/atomeditor-io/atom/issues?q=is%3Aissue+user%3Aatomeditor-io>'
+        ],
+        [
+          'an Atom package that provides the described functionality: <https://atom.io/packages>',
+          'an Atom package that provides the described functionality: <https://atomeditor.io/packages>'
         ]
       ]
     },
@@ -360,6 +380,43 @@ function patchDeadAtomApiNotifications(nodeModulesRoot) {
     if (anyPatched) {
       fs.writeFileSync(filePath, contents);
       console.log(`Patched ${file.relative.join('/')} (dead atom.io API / create-issue button)`);
+    }
+  }
+}
+
+// Newer Electron/Node fs.Stats may omit some of atime/birthtime/ctime/mtime
+// (or expose them non-own), so _.pick loses them and tree-view's
+// `stats[key].getTime()` crashes -> "Failed to activate the tree-view package"
+// on startup. Null-guard the getTime calls (directory.js already did).
+function patchTreeViewGetTime(nodeModulesRoot) {
+  const files = [
+    {
+      relative: ['tree-view', 'lib', 'tree-view.coffee'],
+      replacements: [
+        [
+          '          stats[key] = stats[key].getTime()',
+          '          stats[key] = stats[key]?.getTime()'
+        ]
+      ]
+    }
+  ];
+  for (const file of files) {
+    const filePath = path.join(nodeModulesRoot, ...file.relative);
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+    let contents = fs.readFileSync(filePath, 'utf8');
+    let anyPatched = false;
+    for (const [from, to] of file.replacements) {
+      if (!contents.includes(from) || contents.includes(to)) {
+        continue;
+      }
+      contents = contents.split(from).join(to);
+      anyPatched = true;
+    }
+    if (anyPatched) {
+      fs.writeFileSync(filePath, contents);
+      console.log(`Patched ${file.relative.join('/')} (tree-view getTime null guard)`);
     }
   }
 }
@@ -449,6 +506,7 @@ module.exports = function patchNodeModules() {
   const root = path.join(CONFIG.repositoryRootPath, 'node_modules');
   patchDeprecatedUsage(root);
   patchDeadAtomApiNotifications(root);
+  patchTreeViewGetTime(root);
   const patched = patchSuperstringSources(root);
   removeNodeGypBins(root);
   if (patched && !superstringIsBuilt(root)) {
