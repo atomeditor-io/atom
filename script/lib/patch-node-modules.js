@@ -318,6 +318,14 @@ function patchDeadAtomApiNotifications(nodeModulesRoot) {
         [
           '      .then (r) -> r.text()\n      .catch (e) -> null',
           '      .then (r) -> r.text()\n      .catch (e) -> issueUrl'
+        ],
+        [
+          "    repoUrl = 'atom/atom' unless repoUrl?",
+          "    repoUrl = 'atomeditor-io/atom' unless repoUrl?"
+        ],
+        [
+          "    repoUrl = 'https://github.com/atom/atom' unless repoUrl?",
+          "    repoUrl = 'https://github.com/atomeditor-io/atom' unless repoUrl?"
         ]
       ]
     },
@@ -327,6 +335,10 @@ function patchDeadAtomApiNotifications(nodeModulesRoot) {
         [
           '        return\n    else\n      Promise.resolve()',
           '        return\n      .catch (e) =>\n        fatalNotification.innerHTML += " You can help by creating an issue. Please explain what actions triggered this error."\n        issueButton.addEventListener \'click\', (e) =>\n          e.preventDefault()\n          issueButton.classList.add(\'opening\')\n          @issue.getIssueUrlForSystem().then (issueUrl) ->\n            shell.openExternal(issueUrl)\n            issueButton.classList.remove(\'opening\')\n    else\n      Promise.resolve()'
+        ],
+        [
+          'Create issue on atom/atom',
+          'Create issue on atomeditor-io/atom'
         ]
       ]
     }
