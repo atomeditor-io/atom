@@ -1,8 +1,3 @@
-<!-- original atom/atom banner -->
-![Atom](https://user-images.githubusercontent.com/378023/49132477-f4b77680-f31f-11e8-8357-ac6491761c6c.png)
-
-![Atom screenshot](https://user-images.githubusercontent.com/378023/49132478-f4b77680-f31f-11e8-9e10-e8454d8d9b7e.png)
-
 <p align="center">
   <strong>The hackable text editor, revived on modern Electron.</strong>
 </p>
@@ -13,6 +8,11 @@
   <strong>Electron 38</strong> instead of the dead Electron 11 it shipped with. Every rung of the
   climb is built by CI and released for <strong>Linux</strong>, <strong>macOS</strong>, and <strong>Windows</strong>.
 </p>
+
+<!-- original atom/atom banner -->
+![Atom](https://user-images.githubusercontent.com/378023/49132477-f4b77680-f31f-11e8-8357-ac6491761c6c.png)
+
+![Atom screenshot](https://user-images.githubusercontent.com/378023/49132478-f4b77680-f31f-11e8-9e10-e8454d8d9b7e.png)
 
 <p align="center">
   <a href="https://github.com/atomeditor-io/atom/releases/latest">
