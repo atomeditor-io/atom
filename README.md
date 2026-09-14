@@ -1,3 +1,5 @@
+# Atom
+
 <p align="center">
   <strong>The hackable text editor, revived on modern Electron.</strong>
 </p>
