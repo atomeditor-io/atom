@@ -12,7 +12,7 @@
     "url": "https://github.com/atom/atom/issues"
   },
   "license": "MIT",
-  "electronVersion": "37.10.3",
+  "electronVersion": "38.8.6",
   "dependencies": {
     "@atom/fuzzy-native": "git+https://github.com/tmiland-lab/fuzzy-native.git#electron-modern",
     "@atom/nsfw": "git+https://github.com/tmiland-lab/nsfw.git#electron-modern",
