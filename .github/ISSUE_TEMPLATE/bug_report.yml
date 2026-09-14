@@ -1,0 +1,168 @@
+name: Bug report
+description: Report broken or misbehaving behavior so it can be diagnosed and fixed
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. The more detail you provide, the faster it gets fixed.
+
+        One rule of thumb: if you can reproduce it in a **completely clean profile** (`atom --safe` and/or a fresh user-data dir), the report is worth far more.
+
+  - type: markdown
+    attributes:
+      value: "## Environment"
+
+  - type: input
+    id: build
+    attributes:
+      label: Build (version/tag)
+      description: Exact build you're running — see the About dialog (Help → About Atom) or the tag on the download page.
+      placeholder: "v1.63.1-e38.2"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      description: Exact OS you are on.
+      options:
+        - Ubuntu 22.04
+        - Ubuntu 24.04
+        - Debian 12
+        - Fedora
+        - Arch / Manjaro
+        - Other Linux
+        - macOS 13 (Ventura)
+        - macOS 14 (Sonoma)
+        - macOS 15+ (Sequoia)
+        - Windows 10
+        - Windows 11
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: display
+    attributes:
+      label: Display server (Linux only — critical for menu/rendering bugs)
+      description: Wayland and X11 often behave differently. Check Settings → System, or run `echo $XDG_SESSION_TYPE`.
+      options:
+        - X11 (Xorg)
+        - Wayland
+        - Not sure
+      default: 2
+
+  - type: input
+    id: de
+    attributes:
+      label: Desktop environment / window manager (Linux)
+      description: e.g. GNOME, KDE Plasma, XFCE, Cinnamon, i3, sway, Hyprland.
+      placeholder: "GNOME 46"
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install it?
+      options:
+        - .deb package
+        - .rpm package
+        - Windows .exe installer
+        - macOS .zip
+        - Built from source
+        - Not sure
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: "## 1. Try to minimize the bug first (helps the most)"
+  - type: checkboxes
+    id: triage
+    attributes:
+      label: Reproduction checks
+      description: If you can, test these before filing. Each "no" or unanswered box tells us the bug is likely environmental.
+      options:
+        - label: I reproduced it with `atom --safe` (disables all community packages)
+        - label: I reproduced it with a fresh profile (`atom --user-data-dir=/tmp/fresh-profile`)
+        - label: It does **not** reproduce on the previous build (I'll name both builds below)
+        - label: I restarted Atom and the bug is still present
+  - type: input
+    id: olderbuild
+    attributes:
+      label: If it worked on an older build, which one?
+      placeholder: "v1.63.1-e37.4"
+
+  - type: markdown
+    attributes:
+      value: "## 2. Describe the bug"
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What did you expect, and what actually happened?
+      description: One or two precise sentences beat a paragraph.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What area does this affect most?
+      options:
+        - Menus (application or context menus)
+        - Startup / crash
+        - Editing / text rendering
+        - Fonts / glyph / blurry text
+        - Keyboard shortcuts
+        - Windows / panes / tabs
+        - Themes / UI styling
+        - Community packages
+        - Updates / installer
+        - Performance / freeze / high CPU
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered, minimal steps from a freshly launched Atom. Include the exact file/content if it matters.
+      placeholder: |
+        1. Open Atom
+        2. Click the File menu
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output / error messages
+      description: |
+        Helpful commands (Linux/macOS, run from a terminal):
+        - Launch with logging: `atom --safe --log-file /tmp/atom-debug.log` — then attach `/tmp/atom-debug.log`
+        - Open DevTools (Ctrl+Shift+I) → Console tab → copy any red errors
+        - Crash dumps live in: Linux `~/.config/Atom/Crash Reports/` · macOS `~/Library/Application Support/Atom/Crash Reports/` · Windows `%APPDATA%\Atom\Crash Reports\`
+      placeholder: |
+        Paste JSON-ish error objects, stack traces, or attach the log file.
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else that might help
+      description: GPU/driver for rendering issues, monitor setup, relevant files, links to a video of the bug, etc.
+
+  - type: markdown
+    attributes:
+      value: "## 3. Confirmation"
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this is not a duplicate
+        - label: The build/version I filled in is the one that shows the bug
