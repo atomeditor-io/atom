@@ -29,7 +29,8 @@ const CONTEXT_AWARE_PACKAGES = [
   'fs-admin',
   'superstring',
   '@atom/watcher',
-  'tree-sitter'
+  'tree-sitter',
+  'spellchecker'
 ];
 
 const NODE_MODULE_RE = /NODE_MODULE\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*,\s*([A-Za-z0-9_:]+?)\s*\)/;
@@ -72,6 +73,17 @@ function initCallArgs(text, func) {
 // - nslog: main-process-only logging (required by src/main-process/start.js);
 //   the renderer context-aware requirement never applies to it.
 const NATIVE_SKIP_LIST = ['nslog'];
+
+// Native modules the packaged app actually loads. Rebuilt against the Electron
+// target on every bootstrap so clean installs (apm ci with ignore-scripts)
+// end up with working binaries regardless of fingerprint state. nsfw and
+// keytar are N-API; the rest are patch-to-NODE_MODULE_CONTEXT_AWARE candidates.
+const SHIPPED_NATIVE_PACKAGES = [
+  ...CONTEXT_AWARE_PACKAGES.filter(p => p !== 'nslog'),
+  'keytar',
+  'scrollbar-style',
+  'nslog'
+];
 
 function discoverNativeTargets(nodeModulesRoot) {
   const targets = [...CONTEXT_AWARE_PACKAGES];
@@ -502,6 +514,57 @@ function removeNodeGypBins(nodeModulesRoot) {
   }
 }
 
+// Electron 39+ (V8 13) removed v8::Object::GetIsolate() and
+// v8::Context::GetIsolate(); NAN-era natives use both at init time. Replace
+// with the Isolate::GetCurrent() form that is stable across all supported V8
+// versions. (info.GetIsolate() on callback info is still fine and untouched.)
+function patchRemovedIsolateGetters(nodeModulesRoot) {
+  const replacementsByNeedle = [
+    ['Isolate* isolate = exports->GetIsolate();', 'Isolate* isolate = v8::Isolate::GetCurrent();'],
+    ['v8::Isolate* isolate = context->GetIsolate();', 'v8::Isolate* isolate = v8::Isolate::GetCurrent();']
+  ];
+  let patched = [];
+  for (const pkg of SHIPPED_NATIVE_PACKAGES) {
+    const pkgRoot = path.join(nodeModulesRoot, pkg);
+    if (!fs.existsSync(pkgRoot)) continue;
+    const stack = [[pkgRoot, 0]];
+    while (stack.length) {
+      const [dir, depth] = stack.pop();
+      if (depth > 5) continue;
+      let entries;
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch (e) {
+        continue;
+      }
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name === 'build' || entry.name === 'node_modules') continue;
+          stack.push([full, depth + 1]);
+          continue;
+        }
+        if (!/\.(cc|cpp|h|hpp)$/.test(entry.name)) continue;
+        let contents = fs.readFileSync(full, 'utf8');
+        let changed = false;
+        for (const [from, to] of replacementsByNeedle) {
+          if (contents.includes(from)) {
+            contents = contents.split(from).join(to);
+            changed = true;
+          }
+        }
+        if (changed) {
+          fs.writeFileSync(full, contents);
+          patched.push(path.relative(nodeModulesRoot, full));
+        }
+      }
+    }
+  }
+  if (patched.length) {
+    console.log('Patched removed Isolate getters in: ' + patched.join(', '));
+  }
+}
+
 module.exports = function patchNodeModules() {
   const root = path.join(CONFIG.repositoryRootPath, 'node_modules');
   patchDeprecatedUsage(root);
@@ -512,15 +575,32 @@ module.exports = function patchNodeModules() {
   if (patched && !superstringIsBuilt(root)) {
     buildSuperstring();
   }
-  const caPatched = patchContextAwareSources(root);
-  for (const pkg of caPatched) {
-    // Only rebuild packages that were built at install time (a .node
-    // already exists). Anything else is never loaded by the app; rebuilding
-    // it would only add new failure modes.
-    if (!nativeBinaryPaths(path.join(root, pkg)).length) {
-      console.log(`Skipping rebuild of ${pkg} (no prebuilt binary present)`);
-      continue;
+  patchRemovedIsolateGetters(root);
+  patchContextAwareSources(root);
+  // Clean installs (fingerprint bumped) arrive with NO prebuilt binaries,
+  // because apm ci runs with npm_config_ignore_scripts=true to avoid
+  // prebuild-install (node-abi can't map modern Electron ABIs) and the
+  // spellchecker node-gyp compile (removed V8 GetIsolate). Rebuild every
+  // native module the app can load against the Electron target; sources are
+  // now context-aware or N-API (both fine to rebuild unconditionally).
+  // The tree-sitter grammar bindings also ship in the app and are built from
+  // root node_modules (each with its own binding.gyp). Pin the rebuild set to
+  // the proven shipped modules instead of scanning blindly for binding.gyp.
+  const grammarTargets = [];
+  if (fs.existsSync(root)) {
+    for (const entry of fs.readdirSync(root)) {
+      if (/^tree-sitter-/.test(entry)) {
+        grammarTargets.push(entry);
+      }
     }
+  }
+  const targets = Array.from(
+    new Set([
+      ...SHIPPED_NATIVE_PACKAGES.filter(p => fs.existsSync(path.join(root, p))),
+      ...grammarTargets
+    ])
+  );
+  for (const pkg of targets) {
     rebuildNativeForElectron(root, pkg);
     reseedNestedNativeCopies(CONFIG.repositoryRootPath, root, pkg);
   }

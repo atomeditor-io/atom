@@ -12,7 +12,7 @@
     "url": "https://github.com/atomeditor-io/atom/issues"
   },
   "license": "MIT",
-  "electronVersion": "38.8.6",
+  "electronVersion": "39.8.10",
   "dependencies": {
     "@atom/fuzzy-native": "git+https://github.com/tmiland-lab/fuzzy-native.git#electron-modern",
     "@atom/nsfw": "git+https://github.com/tmiland-lab/nsfw.git#electron-modern",
@@ -127,7 +127,7 @@
     "mocha-multi-reporters": "^1.1.4",
     "mock-spawn": "^0.2.6",
     "normalize-package-data": "3.0.2",
-    "notifications": "git+https://github.com/atom/notifications.git#47da175",
+    "notifications": "git+https://github.com/atomeditor-io/notifications.git#post-issue-fix",
     "nslog": "^3.0.0",
     "one-dark-syntax": "file:packages/one-dark-syntax",
     "one-dark-ui": "file:packages/one-dark-ui",

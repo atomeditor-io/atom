@@ -6,7 +6,7 @@ Progress is tracked in [atomeditor-io/atom#1](https://github.com/atomeditor-io/a
 
 ## Status
 
-Latest: **v1.63.1-e38.1** — Atom 1.63.1 / Electron 38.8.6 ([release](https://github.com/atomeditor-io/atom/releases/tag/v1.63.1-e38.1)).
+Latest: **v1.63.1-e38.3** — Atom 1.63.1 / Electron 38.8.6 ([release](https://github.com/atomeditor-io/atom/releases/tag/v1.63.1-e38.3)).
 
 | Base | Rungs shipped | Notes |
 |---|---|---|
@@ -27,7 +27,7 @@ Grab the build for your Electron rung from [releases](https://github.com/atomedi
 
 No registry — install straight from GitHub: `apm install owner/repo`. Pure-JS packages work out of the box; native packages build against Electron headers via the patched apm (see build doc).
 
-AI coding support: [atomeditor-io/atom-ai](https://github.com/atomeditor-io/atom-ai) (`apm install tmiland-lab/atom-ai`) — CLI-agent bridge (opencode/aider/claude/custom), no API keys.
+AI coding support: [atomeditor-io/atom-ai](https://github.com/atomeditor-io/atom-ai) (`apm install atomeditor-io/atom-ai`) — CLI-agent bridge (opencode/aider/claude/custom), no API keys.
 
 ## Building
 
