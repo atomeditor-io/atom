@@ -43,7 +43,12 @@ childProcess.execFileSync(
   ['--version'],
   {stdio: 'inherit', env: apmVersionEnv}
 )
-runApmInstall(CONFIG.repositoryRootPath, ci)
+// electron-modern chase: skip install lifecycle scripts during apm ci so that
+// prebuild-install (node-abi) and native compiles (e.g. spellchecker with
+// removed V8 APIs) cannot fail the install step.  patch-node-modules below
+// rebuilds every context-aware native module from source for the Electron target.
+const IGNORE_SCRIPTS = { npm_config_ignore_scripts: 'true' };
+runApmInstall(CONFIG.repositoryRootPath, ci, undefined, IGNORE_SCRIPTS);
 
 // Electron 12+ renderer requires context-aware native modules; patch sources,
 // rebuild for the Electron target, and reseed nested copies (idempotent).
