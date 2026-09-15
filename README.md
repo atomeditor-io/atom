@@ -1,6 +1,21 @@
 # Atom
 
 <p align="center">
+  <a href="https://github.com/atomeditor-io/atom/releases/latest">
+    <img src="https://img.shields.io/github/v/release/atomeditor-io/atom?sort=semver&label=latest&style=flat-square" alt="Latest release">
+  </a>
+  <a href="https://github.com/atomeditor-io/atom/actions/workflows/build-deb.yml">
+    <img src="https://github.com/atomeditor-io/atom/actions/workflows/build-deb.yml/badge.svg" alt="CI">
+  </a>
+  <a href="LICENSE.md">
+    <img src="https://img.shields.io/github/license/atomeditor-io/atom?style=flat-square" alt="MIT license">
+  </a>
+  <a href="https://github.com/atomeditor-io/atom/commits/master">
+    <img src="https://img.shields.io/github/commit-activity/m/atomeditor-io/atom?style=flat-square" alt="Commit activity">
+  </a>
+</p>
+
+<p align="center">
   <strong>The hackable text editor, revived on modern Electron.</strong>
 </p>
 
@@ -15,21 +30,6 @@
 ![Atom](https://user-images.githubusercontent.com/378023/49132477-f4b77680-f31f-11e8-8357-ac6491761c6c.png)
 
 ![Atom screenshot](https://user-images.githubusercontent.com/378023/49132478-f4b77680-f31f-11e8-9e10-e8454d8d9b7e.png)
-
-<p align="center">
-  <a href="https://github.com/atomeditor-io/atom/releases/latest">
-    <img src="https://img.shields.io/github/v/release/atomeditor-io/atom?sort=semver&label=latest&style=flat-square" alt="Latest release">
-  </a>
-  <a href="https://github.com/atomeditor-io/atom/actions/workflows/build-deb.yml">
-    <img src="https://github.com/atomeditor-io/atom/actions/workflows/build-deb.yml/badge.svg" alt="CI">
-  </a>
-  <a href="LICENSE.md">
-    <img src="https://img.shields.io/github/license/atomeditor-io/atom?style=flat-square" alt="MIT license">
-  </a>
-  <a href="https://github.com/atomeditor-io/atom/commits/master">
-    <img src="https://img.shields.io/github/commit-activity/m/atomeditor-io/atom?style=flat-square" alt="Commit activity">
-  </a>
-</p>
 
 ---
 
