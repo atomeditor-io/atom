@@ -1,7 +1,12 @@
 const Module = require('module');
 const path = require('path');
 const crypto = require('crypto');
-const vm = require('vm');
+let vm = null;
+try {
+  vm = require('vm');
+} catch (err) {
+  console.warn('Native compile cache disabled:', err.message);
+}
 
 function computeHash(contents) {
   return crypto
@@ -25,11 +30,13 @@ class NativeCompileCache {
   }
 
   install() {
+    if (vm === null) return;
     this.savePreviousModuleCompile();
     this.overrideModuleCompile();
   }
 
   uninstall() {
+    if (vm === null || this.previousModuleCompile === null) return;
     this.restorePreviousModuleCompile();
   }
 
