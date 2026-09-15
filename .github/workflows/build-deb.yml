@@ -32,6 +32,13 @@ jobs:
           npm_config_node_gyp: ${{ github.workspace }}/script/patches/node-gyp/bin/node-gyp.js
         run: ./script/build --create-debian-package --create-rpm-package
 
+      - name: Rename packages to versioned names
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          mv out/atom-amd64.deb "out/atom-amd64-${VER}.deb"
+          mv out/atom.x86_64.rpm "out/atom-x86_64-${VER}.rpm"
+
       - uses: actions/upload-artifact@v4
         with:
           name: atom-packages
@@ -104,16 +111,22 @@ jobs:
           npm_config_node_gyp: ${{ github.workspace }}/script/patches/node-gyp/bin/node-gyp.js
         run: ./script/build --compress-artifacts
 
+      - name: Rename mac zip to versioned name
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          mv out/atom-mac.zip "out/atom-mac-${VER}.zip"
+
       - uses: actions/upload-artifact@v4
         with:
           name: atom-mac
-          path: out/atom-mac.zip
+          path: out/atom-mac-*.zip
 
       - name: Publish mac zip to release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: out/atom-mac.zip
+          files: out/atom-mac-*.zip
 
   build-win:
     runs-on: windows-2022
@@ -138,6 +151,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           npm_config_node_gyp: ${{ github.workspace }}/script/patches/node-gyp/bin/node-gyp.js
         run: node script/build --create-windows-installer
+
+      - name: Rename setup exe to versioned name
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          mv out/AtomSetup-x64.exe "out/atom-x64-${VER}-setup.exe"
 
       - uses: actions/upload-artifact@v4
         with:
