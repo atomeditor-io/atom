@@ -154,6 +154,7 @@ jobs:
 
       - name: Rename setup exe to versioned name
         if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
         run: |
           VER="${GITHUB_REF_NAME#v}"
           mv out/AtomSetup-x64.exe "out/atom-x64-${VER}-setup.exe"
