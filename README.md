@@ -1,4 +1,4 @@
-# Atom (tmiland-lab revival)
+# Atom
 
 Active fork of [atom/atom](https://github.com/atom/atom) `v1.63.1`, keeping a usable Atom alive on modern Electron — pure lineage (this tree + our patches, stock Electron runtime). Upstream archived Atom in Dec 2022; this fork builds, releases, and climbs Electron rung-by-rung.
 
