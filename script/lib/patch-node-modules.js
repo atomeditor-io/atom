@@ -69,6 +69,34 @@ function initCallArgs(text, func) {
   return 'exports';
 }
 
+
+// first-mate scanner: oniguruma's OnigScanner is the native underline of every
+// syntax token. If it arrives as a SILENT placeholder (native loads, but
+// search ends up absent because the .node ABI is wrong for this Electron and
+// the error was swallowed), tokenization fails SILENTLY: the editor shows
+// root-only scope, zero colors, no console error. That dead-silence is the
+// worst possible failure mode for a rebuild test. Make it LOUD so any future
+// build either tokenizes normally or prints the exact native path + the one
+// reason it could not search. Idempotent: skips if the guard marker is
+// already present (survives repeated patch-node-modules runs).
+function patchFirstMateScannerLoudGuard(nodeModulesRoot) {
+  const rel = ['first-mate', 'lib', 'scanner.js'];
+  const filePath = path.join(nodeModulesRoot, ...rel);
+  if (!fs.existsSync(filePath)) return false;
+  const contents = fs.readFileSync(filePath, 'utf8');
+  const marker = '[first-mate/scanner] OnigScanner is a SILENT PLACEHOLDER';
+  if (contents.includes(marker)) return false;
+  const anchor = "scanner = new OnigScanner(patterns);";
+  if (!contents.includes(anchor)) return false;
+  const guard = anchor + "\n      if ((scanner == null) || (typeof scanner.search !== 'function')) {\n        try {\n          var requiredPath = require.resolve('oniguruma');\n          console.error(\n            '[first-mate/scanner] OnigScanner is a SILENT PLACEHOLDER (search not a function). ' +\n            'Native tokenization is DISABLED in this build. native=' +\n            require.resolve('oniguruma/build/Release/onig_scanner.node') + ' ABI=' +\n            (process.versions != null ? process.versions.modules : '?')\n          );\n        } catch (e) {\n          console.error('[first-mate/scanner] oniguruma unresolvable: ' + e.message);\n        }\n      }";
+  const patched = contents.replace(anchor, guard);
+  if (patched !== contents) {
+    fs.writeFileSync(filePath, patched);
+    console.log('Patched first-mate/lib/scanner.js (loud oniguruma guard)');
+  }
+  return patched !== contents;
+}
+
 // Packages with native bindings that must NOT be touched:
 // - nslog: main-process-only logging (required by src/main-process/start.js);
 //   the renderer context-aware requirement never applies to it.
@@ -569,6 +597,7 @@ module.exports = function patchNodeModules() {
   const root = path.join(CONFIG.repositoryRootPath, 'node_modules');
   patchDeprecatedUsage(root);
   patchDeadAtomApiNotifications(root);
+  patchFirstMateScannerLoudGuard(root);
   patchTreeViewGetTime(root);
   const patched = patchSuperstringSources(root);
   removeNodeGypBins(root);
