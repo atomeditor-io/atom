@@ -73,7 +73,7 @@ jobs:
       - name: Headless launch smoke (xvfb, app must come alive)
         run: |
           sudo apt-get install -y xvfb
-          timeout 40 xvfb-run -a atom --safe > smoke-install.log 2>&1
+          timeout 40 xvfb-run -a atom --safe --enable-logging > smoke-install.log 2>&1
           rc=$?
           echo "smoke rc=$rc"
           case $rc in
@@ -82,7 +82,7 @@ jobs:
             *)   echo "crash rc=$rc"; tail -30 smoke-install.log; exit 1 ;;
           esac
           echo APP-ALIVE
-          grep -E "Renderer process crashed|non-context-aware|Gtk-ERROR|Cannot find module|vm module of Node.js is unsupported" smoke-install.log && { echo CRASH-STR; exit 1; } || echo SMOKE-CLEAN
+          grep -E "Renderer process crashed|non-context-aware|Gtk-ERROR|Cannot find module|vm module of Node.js is unsupported|first-mate/scanner" smoke-install.log && { echo CRASH-STR; exit 1; } || echo SMOKE-CLEAN
 
   build-mac:
     runs-on: macos-14
