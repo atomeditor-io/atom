@@ -88,7 +88,11 @@ function patchFirstMateScannerLoudGuard(nodeModulesRoot) {
   if (contents.includes(marker)) return false;
   const anchor = "scanner = new OnigScanner(patterns);";
   if (!contents.includes(anchor)) return false;
-  const guard = anchor + "\n      if ((scanner == null) || (typeof scanner.search !== 'function')) {\n        try {\n          var requiredPath = require.resolve('oniguruma');\n          console.error(\n            '[first-mate/scanner] OnigScanner is a SILENT PLACEHOLDER (search not a function). ' +\n            'Native tokenization is DISABLED in this build. native=' +\n            require.resolve('oniguruma/build/Release/onig_scanner.node') + ' ABI=' +\n            (process.versions != null ? process.versions.modules : '?')\n          );\n        } catch (e) {\n          console.error('[first-mate/scanner] oniguruma unresolvable: ' + e.message);\n        }\n      }";
+  // OnigScanner.prototype has no `search` method: its real API on Electron is
+  // `findNextMatchSync`. Only a stub/placeholder would lack it, so that is the
+  // correct probe. (Checking `search` would false-positive on every healthy
+  // native build and spam `[first-mate/scanner] SILENT PLACEHOLDER`.)
+  const guard = anchor + "\n      if ((scanner == null) || (typeof scanner.findNextMatchSync !== 'function')) {\n        try {\n          var requiredPath = require.resolve('oniguruma');\n          console.error(\n            '[first-mate/scanner] OnigScanner is a SILENT PLACEHOLDER (findNextMatchSync not a function). ' +\n            'Native tokenization is DISABLED in this build. native=' +\n            require.resolve('oniguruma/build/Release/onig_scanner.node') + ' ABI=' +\n            (process.versions != null ? process.versions.modules : '?')\n          );\n        } catch (e) {\n          console.error('[first-mate/scanner] oniguruma unresolvable: ' + e.message);\n        }\n      }";
   const patched = contents.replace(anchor, guard);
   if (patched !== contents) {
     fs.writeFileSync(filePath, patched);
@@ -207,7 +211,10 @@ function nativeBinaryPaths(pkgRoot) {
 }
 
 function rebuildNativeForElectron(nodeModulesRoot, pkg) {
-  const pkgRoot = path.join(nodeModulesRoot, pkg);
+  rebuildNativeAtPath(path.join(nodeModulesRoot, pkg), pkg);
+}
+
+function rebuildNativeAtPath(pkgRoot, label) {
   const gypBin = path.join(
     CONFIG.repositoryRootPath,
     'script',
@@ -216,7 +223,7 @@ function rebuildNativeForElectron(nodeModulesRoot, pkg) {
     'bin',
     'node-gyp.js'
   );
-  console.log(`Rebuilding ${pkg} context-aware for Electron ${CONFIG.appMetadata.electronVersion}`);
+  console.log(`Rebuilding ${label} context-aware for Electron ${CONFIG.appMetadata.electronVersion}`);
   childProcess.spawnSync(
     process.execPath,
     [
@@ -229,7 +236,92 @@ function rebuildNativeForElectron(nodeModulesRoot, pkg) {
     { stdio: 'inherit', cwd: pkgRoot, env: process.env }
   );
   if (!nativeBinaryPaths(pkgRoot).length) {
-    throw new Error(`native rebuild produced no .node for ${pkg}`);
+    throw new Error(`native rebuild produced no .node for ${label}`);
+  }
+}
+
+// Shipping status of the git/ripgrep binaries the GitHub package needs.
+// `apm ci` uses npm_config_ignore_scripts=true (see script/bootstrap), so the
+// dugite postinstall (download-git) and vscode-ripgrep postinstall (binary
+// download) never run. Without them the GitHub panel's git-process and the
+// ripgrep searcher both die at runtime. Provision them here, exactly as the
+// ignored postinstall scripts would, but only when the binary is missing (so
+// re-runs are fast). Console noise is suppressed; failures surface via rc.
+function ensureDirectory(command, cwd, description) {
+  console.log(`Provisioning ${description}...`);
+  const result = childProcess.spawnSync(command, { cwd, stdio: 'inherit', env: process.env });
+  if (result.status !== 0) {
+    throw new Error(`could not provision ${description} (rc=${result.status})`);
+  }
+}
+
+function provisionBinaryDependencies(root) {
+  const dugiteRoot = path.join(root, 'dugite');
+  const gitBin = path.join(dugiteRoot, 'git', 'bin', 'git');
+  if (!fs.existsSync(gitBin)) {
+    ensureDirectory(
+      process.execPath,
+      dugiteRoot,
+      'dugite embedded git via script/download-git.js'
+    );
+  } else {
+    console.log('dugite embedded git already present.');
+  }
+
+  const ripgrepBin = path.join(
+    root,
+    'vscode-ripgrep',
+    'bin',
+    process.platform === 'win32' ? 'rg.exe' : 'rg'
+  );
+  if (!fs.existsSync(ripgrepBin)) {
+    ensureDirectory(
+      process.execPath,
+      path.join(root, 'vscode-ripgrep'),
+      'vscode-ripgrep binary via lib/postinstall.js'
+    );
+  } else {
+    console.log('vscode-ripgrep binary already present.');
+  }
+}
+
+// keytar is a runtime dependency of the GitHub package but lives NESTED under
+// node_modules/github/node_modules/keytar (the outer node_modules has no keytar
+// entry). The root-level SHIPPED_NATIVE_PACKAGES rebuild loop therefore never
+// builds it, and its N-API binary is absent from every packaged app ->
+// "Cannot find module '../build/Release/keytar.node'" on GitHub login/issue.
+// Find any nested shipped-native copies and rebuild them in place.
+function rebuildNestedShippedNatives(root) {
+  const stack = [[root, 0]];
+  while (stack.length) {
+    const [dir, depth] = stack.pop();
+    if (depth > 8) continue;
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (e) {
+      continue;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === 'node_modules') {
+          stack.push([full, depth + 1]);
+          continue;
+        }
+        if (
+          SHIPPED_NATIVE_PACKAGES.includes(entry.name) &&
+          dir !== root &&
+          fs.existsSync(path.join(full, 'package.json')) &&
+          fs.existsSync(path.join(full, 'binding.gyp'))
+        ) {
+          rebuildNativeAtPath(full, entry.name + ' (nested)');
+          stack.push([full, depth + 1]);
+        } else {
+          stack.push([full, depth + 1]);
+        }
+      }
+    }
   }
 }
 
@@ -424,6 +516,155 @@ function patchDeadAtomApiNotifications(nodeModulesRoot) {
   }
 }
 
+// Electron 20+ defaults the renderer sandbox to ON. The GitHub package's
+// In Electron 39, text-buffer Point instances returned by
+// HighlightIterator.getPosition() are frozen (Object.freeze). The upstream
+// tokenizedLineForRow() mutates end.row/end.column directly, which throws
+// "Cannot assign to read only property 'row'" and breaks python
+// (TreeSitterLanguageMode) highlighting — every .py file shows zero colors.
+// Fix: clone the position before clamping.
+function patchTreeSitterFrozenPoint(repositoryRootPath) {
+  // In the full bootstrap+build chain this is patched in the repo src/ BEFORE
+  // copyAssets() copies it to out/app. In a --no-bootstrap build copyAssets
+  // runs first, so also patch the intermediate app copy when it exists.
+  const candidates = [
+    path.join(repositoryRootPath, 'src', 'tree-sitter-language-mode.js'),
+    path.join(CONFIG.intermediateAppPath, 'src', 'tree-sitter-language-mode.js')
+  ];
+  let patchedAny = false;
+  for (const filePath of candidates) {
+    if (!fs.existsSync(filePath)) continue;
+    let contents = fs.readFileSync(filePath, 'utf8');
+    if (contents.includes('// [atom-revival] frozen-point-guard')) continue;
+    const oldBlock =
+      '    const iterator = this.buildHighlightIterator();\n' +
+      '    let start = { row, column: 0 };\n' +
+      '    const scopes = iterator.seek(start, row);\n' +
+      '    while (true) {\n' +
+      '      const end = iterator.getPosition();\n' +
+      '      if (end.row > row) {\n' +
+      '        end.row = row;\n' +
+      '        end.column = lineText.length;\n' +
+      '      }';
+    const newBlock =
+      '    const iterator = this.buildHighlightIterator();\n' +
+      '    let start = { row, column: 0 };\n' +
+      '    const scopes = iterator.seek(start, row);\n' +
+      '    while (true) {\n' +
+      '      // [atom-revival] frozen-point-guard: getPosition() may return a frozen Point;\n' +
+      '      // clone before mutating to avoid "Cannot assign to read only property".\n' +
+      '      let end = iterator.getPosition();\n' +
+      '      if (end.row > row) {\n' +
+      '        end = { row, column: lineText.length };\n' +
+      '      }';
+    if (!contents.includes(oldBlock)) continue;
+    contents = contents.replace(oldBlock, newBlock);
+    fs.writeFileSync(filePath, contents);
+    patchedAny = true;
+    console.log('Patched tree-sitter-language-mode.js (frozen Point guard):', filePath);
+  }
+  return patchedAny;
+}
+
+// After tree.edit() (buffer change / checkpoint undo restore) and before the
+// next parse finishes, TreeSitterLanguageMode's root tree AND any injection
+// layer tree are still truthy objects, but their rootNode getter returns null
+// (native node id == 0 = NULL TSNode). Bracket-matcher then calls
+// getSyntaxNodeAtPosition on selection change and crashes at
+// `tree.rootNode.descendantForIndex(...)` → "Cannot read properties of null
+// (reading 'descendantForIndex')" → issue-report form pops up in .py files.
+// Fix: guard on tree.rootNode at the _forEachTreeWithRange choke point (covers
+// every caller) plus the descendantForIndex access itself.
+function patchTreeSitterNullRootNode(repositoryRootPath) {
+  const candidates = [
+    path.join(repositoryRootPath, 'src', 'tree-sitter-language-mode.js'),
+    path.join(CONFIG.intermediateAppPath, 'src', 'tree-sitter-language-mode.js')
+  ];
+  let patchedAny = false;
+  for (const filePath of candidates) {
+    if (!fs.existsSync(filePath)) continue;
+    let contents = fs.readFileSync(filePath, 'utf8');
+    if (contents.includes('// [atom-revival] null-root-node-guard')) continue;
+    let changed = false;
+
+    const oldForEachTree =
+      '  _forEachTreeWithRange(range, callback) {\n' +
+      '    if (this.rootLanguageLayer.tree) {\n' +
+      '      callback(this.rootLanguageLayer.tree, this.rootLanguageLayer.grammar);\n' +
+      '    }';
+    const newForEachTree =
+      '  _forEachTreeWithRange(range, callback) {\n' +
+      '    // [atom-revival] null-root-node-guard: tree.rootNode is transiently null\n' +
+      '    // right after tree.edit() and before the reparse finishes.\n' +
+      '    if (this.rootLanguageLayer.tree && this.rootLanguageLayer.tree.rootNode) {\n' +
+      '      callback(this.rootLanguageLayer.tree, this.rootLanguageLayer.grammar);\n' +
+      '    }';
+    if (contents.includes(oldForEachTree)) {
+      contents = contents.replace(oldForEachTree, newForEachTree);
+      changed = true;
+    }
+
+    const oldInjectionTree =
+      '      const { tree, grammar } = injectionMarker.languageLayer;\n' +
+      '      if (tree) callback(tree, grammar);';
+    const newInjectionTree =
+      '      const { tree, grammar } = injectionMarker.languageLayer;\n' +
+      '      // [atom-revival] null-root-node-guard (injection layer, see above)\n' +
+      '      if (tree && tree.rootNode) callback(tree, grammar);';
+    if (contents.includes(oldInjectionTree)) {
+      contents = contents.replace(oldInjectionTree, newInjectionTree);
+      changed = true;
+    }
+
+    const oldDescendant =
+      '      let node = tree.rootNode.descendantForIndex(startIndex, searchEndIndex);';
+    const newDescendant =
+      '      // [atom-revival] null-root-node-guard: skip until reparse lands\n' +
+      '      let node = tree.rootNode\n' +
+      '        ? tree.rootNode.descendantForIndex(startIndex, searchEndIndex)\n' +
+      '        : null;';
+    if (contents.includes(oldDescendant)) {
+      contents = contents.replace(oldDescendant, newDescendant);
+      changed = true;
+    }
+
+    if (!changed) continue;
+    fs.writeFileSync(filePath, contents);
+    patchedAny = true;
+    console.log('Patched tree-sitter-language-mode.js (null root-node guard):', filePath);
+  }
+  return patchedAny;
+}
+
+// worker window (node_modules/github/lib/worker-manager.js) creates a
+// BrowserWindow with nodeIntegration:true but no sandbox:false, so its
+// renderer runs sandboxed and `require`/`process` are undefined inside
+// github/lib/renderer.html -> "Uncaught ReferenceError: require is not
+// defined" when the GitHub panel starts a git worker. Force the worker
+// window out of the sandbox so the renderer can require node modules.
+function patchGitHubWorkerSandbox(nodeModulesRoot) {
+  const filePath = path.join(
+    nodeModulesRoot,
+    'github',
+    'lib',
+    'worker-manager.js'
+  );
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+  let contents = fs.readFileSync(filePath, 'utf8');
+  if (contents.includes('sandbox: false')) {
+    return;
+  }
+  contents = contents
+    .split('webPreferences: {nodeIntegration: true, enableRemoteModule: true}')
+    .join(
+      'webPreferences: {nodeIntegration: true, enableRemoteModule: true, sandbox: false}'
+    );
+  fs.writeFileSync(filePath, contents);
+  console.log('Patched github/lib/worker-manager.js (renderer sandbox: false)');
+}
+
 // Newer Electron/Node fs.Stats may omit some of atime/birthtime/ctime/mtime
 // (or expose them non-own), so _.pick loses them and tree-view's
 // `stats[key].getTime()` crashes -> "Failed to activate the tree-view package"
@@ -597,6 +838,7 @@ module.exports = function patchNodeModules() {
   const root = path.join(CONFIG.repositoryRootPath, 'node_modules');
   patchDeprecatedUsage(root);
   patchDeadAtomApiNotifications(root);
+  patchGitHubWorkerSandbox(root);
   patchFirstMateScannerLoudGuard(root);
   patchTreeViewGetTime(root);
   const patched = patchSuperstringSources(root);
@@ -633,6 +875,10 @@ module.exports = function patchNodeModules() {
     rebuildNativeForElectron(root, pkg);
     reseedNestedNativeCopies(CONFIG.repositoryRootPath, root, pkg);
   }
+  rebuildNestedShippedNatives(root);
+  provisionBinaryDependencies(root);
+  patchTreeSitterFrozenPoint(CONFIG.repositoryRootPath);
+  patchTreeSitterNullRootNode(CONFIG.repositoryRootPath);
   for (const packageName of Object.keys(
     CONFIG.appMetadata.packageDependencies
   )) {
