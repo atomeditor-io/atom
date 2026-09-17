@@ -255,6 +255,8 @@ class TreeSitterLanguageMode {
    */
   getFoldableRangesAtIndentLevel(goalLevel) {
     let result = [];
+    // [atom-revival] null-root-node-guard: no tree/rootNode yet -> no folds.
+    if (!this.tree || !this.tree.rootNode) return result;
     let stack = [{ node: this.tree.rootNode, level: 0 }];
     while (stack.length > 0) {
       const { node, level } = stack.pop();
@@ -667,7 +669,10 @@ class LanguageLayer {
   }
 
   buildHighlightIterator() {
-    if (this.tree) {
+    // [atom-revival] null-root-node-guard: tree.rootNode is transiently null
+    // right after tree.edit() and before the reparse finishes; Tree.walk()
+    // dereferences rootNode so we must skip too.
+    if (this.tree && this.tree.rootNode) {
       return new LayerHighlightIterator(this, this.tree.walk());
     } else {
       return new NullLayerHighlightIterator();
@@ -721,7 +726,9 @@ class LanguageLayer {
     if (!this.currentParsePromise) {
       while (
         !this.destroyed &&
-        (!this.tree || this.tree.rootNode.hasChanges())
+        // [atom-revival] null-root-node-guard: treat null rootNode (edit-then-
+        // pre-reparse window) as "needs reparse" instead of dereferencing it.
+        (!this.tree || !this.tree.rootNode || this.tree.rootNode.hasChanges())
       ) {
         const params = { async: false };
         this.currentParsePromise = this._performUpdate(nodeRangeSet, params);
