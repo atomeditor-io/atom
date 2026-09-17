@@ -337,7 +337,9 @@ class TreeSitterLanguageMode {
   }
 
   _forEachTreeWithRange(range, callback) {
-    if (this.rootLanguageLayer.tree) {
+    // [atom-revival] null-root-node-guard: tree.rootNode is transiently null
+    // right after tree.edit() and before the reparse finishes.
+    if (this.rootLanguageLayer.tree && this.rootLanguageLayer.tree.rootNode) {
       callback(this.rootLanguageLayer.tree, this.rootLanguageLayer.grammar);
     }
 
@@ -347,7 +349,8 @@ class TreeSitterLanguageMode {
 
     for (const injectionMarker of injectionMarkers) {
       const { tree, grammar } = injectionMarker.languageLayer;
-      if (tree) callback(tree, grammar);
+      // [atom-revival] null-root-node-guard (injection layer, see above)
+      if (tree && tree.rootNode) callback(tree, grammar);
     }
   }
 
@@ -446,7 +449,10 @@ class TreeSitterLanguageMode {
     let smallestNode = null;
     let smallestNodeGrammar = this.grammar;
     this._forEachTreeWithRange(range, (tree, grammar) => {
-      let node = tree.rootNode.descendantForIndex(startIndex, searchEndIndex);
+      // [atom-revival] null-root-node-guard: skip until reparse lands
+      let node = tree.rootNode
+        ? tree.rootNode.descendantForIndex(startIndex, searchEndIndex)
+        : null;
       while (node) {
         if (
           nodeContainsIndices(node, startIndex, endIndex) &&
@@ -507,10 +513,11 @@ class TreeSitterLanguageMode {
     let start = { row, column: 0 };
     const scopes = iterator.seek(start, row);
     while (true) {
-      const end = iterator.getPosition();
+      // [atom-revival] frozen-point-guard: getPosition() may return a frozen Point;
+      // clone before mutating to avoid "Cannot assign to read only property".
+      let end = iterator.getPosition();
       if (end.row > row) {
-        end.row = row;
-        end.column = lineText.length;
+        end = { row, column: lineText.length };
       }
 
       if (end.column > start.column) {
