@@ -127,6 +127,64 @@ module.exports = function start(resourcePath, devResourcePath, startTime) {
     app.setPath('userData', temp.mkdirSync('atom-test-data'));
   }
 
+  // ---- atomeditor-io fork (single-instance lock) -----------------------------
+  // The stock socket handoff (NetWorker open/AtomApplication.openFromSocketPath)
+  // has a cold-boot race: a second `atom <file>` fired while the primary is
+  // still booting finds no socket yet (the secret file / socket appear only on
+  // 'ready', which can be after the crash dialog), so it falls through the
+  // client.on('error') handler into createApplication() and TWO processes open
+  // the SAME profile. Both then contend for LevelDB's LOCK; the loser dies with
+  // the fatal "Could not connect to indexedDB" dialog (state-store.js:31).
+  // requestSingleInstanceLock() closes the race atomically: Electron keys the
+  // lock to our userData dir (the same dir the profile lives in), so only one
+  // process can ever own this profile per launch. The winner forwards the
+  // loser's paths to itself via 'second-instance' instead of a second app.
+  const ArgParser = require('./parse-command-line');
+
+  // Module-level stash; primary drains it once AtomApplication is up. Survives
+  // launches that arrive between the lock acquisition and application.ready.
+  const pendingPathsFromSecondInstance = [];
+
+  if (!app.requestSingleInstanceLock()) {
+    app.quit();
+    return;
+  }
+
+  app.on('second-instance', (event, secondArgv, secondWorkingDirectory) => {
+    event.preventDefault();
+    const secondArgs = ArgParser.parse(secondArgv.slice(1));
+    const secondPathsToOpen = secondArgs.pathsToOpen || [];
+    const secondUrlsToOpen = secondArgs.urlsToOpen || [];
+    const secondNewWindow = secondArgs['new-window'];
+    const secondDev = secondArgs['dev'];
+    const secondSafe = secondArgs['safe'];
+
+    if (
+      secondPathsToOpen.length === 0 &&
+      secondUrlsToOpen.length === 0 &&
+      !secondNewWindow
+    ) {
+      return;
+    }
+
+    const handoff = {
+      pathsToOpen: secondPathsToOpen,
+      urlsToOpen: secondUrlsToOpen,
+      newWindow: secondNewWindow,
+      devMode: secondDev,
+      safeMode: secondSafe,
+      workingDirectory: secondWorkingDirectory
+    };
+
+    if (global.atomApplication) {
+      global.atomApplication.openWithOptions(handoff);
+    } else {
+      pendingPathsFromSecondInstance.push(handoff);
+    }
+  });
+
+  module.exports.pendingPathsFromSecondInstance = pendingPathsFromSecondInstance;
+
   StartupTime.addMarker('main-process:electron-onready:start');
   app.on('ready', function() {
     StartupTime.addMarker('main-process:electron-onready:end');
@@ -138,7 +196,26 @@ module.exports = function start(resourcePath, devResourcePath, startTime) {
       'main-process',
       'atom-application'
     ));
-    AtomApplication.open(args);
+    AtomApplication.open(args).then(() => {
+      // Drain 'second-instance' handoffs that arrived while the primary was
+      // still booting (before initialize() had assigned global.atomApplication,
+      // so the queue could not be routed to openWithOptions yet). global
+      // atomApplication is guaranteed to exist once open()'s launch resolved.
+      if (pendingPathsFromSecondInstance.length > 0) {
+        const drainSecondInstanceHandoffs = async () => {
+          for (const handoff of pendingPathsFromSecondInstance.splice(0)) {
+            await global.atomApplication.openWithOptions(handoff);
+          }
+        };
+
+        drainSecondInstanceHandoffs().catch(handoffError => {
+          console.error(
+            'Error opening paths handed off from a second Atom instance:',
+            handoffError
+          );
+        });
+      }
+    });
   });
 };
 
