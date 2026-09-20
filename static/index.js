@@ -155,18 +155,15 @@
         )
       : require('document-register-element');
 
-    const Grim = useSnapshot
-      ? snapshotResult.customRequire('../node_modules/grim/lib/grim.js')
-      : require('grim');
     const documentRegisterElement = document.registerElement;
 
-    document.registerElement = (type, options) => {
-      Grim.deprecate(
-        'Use `customElements.define` instead of `document.registerElement` see https://javascript.info/custom-elements'
-      );
-
-      return documentRegisterElement(type, options);
-    };
+    // Electron removed document.registerElement; the
+    // document-register-element polyfill provides it for legacy
+    // community packages. Do not surface a Grim deprecation here —
+    // third-party packages we cannot fix would trigger it and it
+    // would be (mis)attributed to atom core.
+    document.registerElement = (type, options) =>
+      documentRegisterElement(type, options);
 
     const CSON = useSnapshot
       ? snapshotResult.customRequire('../node_modules/season/lib/cson.js')

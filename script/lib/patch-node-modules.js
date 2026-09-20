@@ -693,6 +693,255 @@ function patchTreeSitterNullRootNode(repositoryRootPath) {
 // github/lib/renderer.html -> "Uncaught ReferenceError: require is not
 // defined" when the GitHub panel starts a git worker. Force the worker
 // window out of the sandbox so the renderer can require node modules.
+// Electron 14 removed `electron.remote`; a shim in src/electron-shims.js
+// still logs a deprecation whenever it is accessed. The bundled github,
+// settings-view and tabs packages keep using it, so every startup shows a
+// wall of "atom core" deprecations in the cop. Repoint them at
+// @electron/remote (already initialized in src/main-process/atom-window.js).
+// Runs BEFORE transpileGithubEsm so the ESM import strings still match.
+const REMOTE_USAGE_REPLACEMENTS = [
+  {
+    relative: path.join('github', 'lib', 'models', 'event-logger.js'),
+    replacements: [
+      [
+        "import {remote} from 'electron';",
+        "import remote from '@electron/remote';"
+      ]
+    ]
+  },
+  {
+    relative: path.join('github', 'lib', 'views', 'actionable-review-view.js'),
+    replacements: [
+      [
+        "import {remote, shell} from 'electron';",
+        "import {shell} from 'electron';\nimport remote from '@electron/remote';"
+      ]
+    ]
+  },
+  {
+    relative: path.join('github', 'lib', 'views', 'directory-select.js'),
+    replacements: [
+      [
+        "import {remote} from 'electron';",
+        "import remote from '@electron/remote';"
+      ]
+    ]
+  },
+  {
+    relative: path.join('github', 'lib', 'views', 'git-timings-view.js'),
+    replacements: [
+      [
+        "import {remote} from 'electron';",
+        "import remote from '@electron/remote';"
+      ]
+    ]
+  },
+  {
+    relative: path.join('github', 'lib', 'views', 'staging-view.js'),
+    replacements: [
+      [
+        "import {remote} from 'electron';",
+        "import remote from '@electron/remote';"
+      ]
+    ]
+  },
+  {
+    relative: path.join('github', 'lib', 'controllers', 'conflict-controller.js'),
+    replacements: [
+      [
+        "import {remote} from 'electron';",
+        "import remote from '@electron/remote';"
+      ]
+    ]
+  },
+  {
+    relative: path.join(
+      'github',
+      'lib',
+      'controllers',
+      'issueish-list-controller.js'
+    ),
+    replacements: [
+      [
+        "import {shell, remote} from 'electron';",
+        "import {shell} from 'electron';\nimport remote from '@electron/remote';"
+      ]
+    ]
+  },
+  {
+    relative: path.join('github', 'lib', 'controllers', 'root-controller.js'),
+    replacements: [
+      [
+        "import {remote} from 'electron';",
+        "import remote from '@electron/remote';"
+      ]
+    ]
+  },
+  {
+    relative: path.join('github', 'lib', 'git-shell-out-strategy.js'),
+    replacements: [
+      [
+        "import {remote} from 'electron';",
+        "import remote from '@electron/remote';"
+      ]
+    ]
+  },
+  {
+    relative: path.join('github', 'lib', 'worker-manager.js'),
+    replacements: [
+      [
+        "import {remote, ipcRenderer as ipc} from 'electron';",
+        "import {ipcRenderer as ipc} from 'electron';\nimport remote from '@electron/remote';"
+      ]
+    ]
+  },
+  {
+    relative: path.join('github', 'lib', 'worker.js'),
+    replacements: [
+      [
+        "const {remote, ipcRenderer: ipc} = require('electron');",
+        "const {ipcRenderer: ipc} = require('electron');\nconst remote = require('@electron/remote');"
+      ]
+    ]
+  },
+  {
+    relative: path.join('settings-view', 'lib', 'uri-handler-panel.js'),
+    replacements: [
+      ["require('electron').remote.app", "require('@electron/remote').app"]
+    ]
+  },
+  {
+    relative: path.join('settings-view', 'lib', 'atom-io-client.coffee'),
+    replacements: [
+      [
+        "{remote} = require 'electron'",
+        "remote = require '@electron/remote'"
+      ]
+    ]
+  },
+  {
+    relative: path.join('tree-view', 'lib', 'root-drag-and-drop.coffee'),
+    replacements: [
+      [
+        "{ipcRenderer, remote} = require 'electron'",
+        "{ipcRenderer} = require 'electron'\nremote = require '@electron/remote'"
+      ]
+    ]
+  },
+  {
+    relative: path.join('devtron', 'out', 'index.js'),
+    replacements: [
+      [
+        "require('electron').remote",
+        "require('@electron/remote')"
+      ],
+      [
+        "const remote = electron.remote",
+        "const remote = require('@electron/remote')"
+      ]
+    ]
+  },
+  {
+    relative: path.join('tabs', 'lib', 'tab-bar-view.coffee'),
+    replacements: [
+      [
+        "require('electron').remote.BrowserWindow",
+        "require('@electron/remote').BrowserWindow"
+      ]
+    ]
+  }
+];
+
+function patchElectronRemoteUsage(nodeModulesRoot) {
+  let patchedCount = 0;
+  for (const file of REMOTE_USAGE_REPLACEMENTS) {
+    const filePath = path.join(nodeModulesRoot, file.relative);
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+    let contents = fs.readFileSync(filePath, 'utf8');
+    let anyPatched = false;
+    for (const [from, to] of file.replacements) {
+      if (!contents.includes(from) || contents.includes(to)) {
+        continue;
+      }
+      contents = contents.split(from).join(to);
+      anyPatched = true;
+    }
+    if (anyPatched) {
+      fs.writeFileSync(filePath, contents);
+      console.log(`Patched ${file.relative} (electron.remote → @electron/remote)`);
+      patchedCount++;
+    }
+  }
+  return patchedCount;
+}
+
+// Deprecation-cop's "Report Issue" and Settings' package links derive from each
+// package's `repository` field. Bundled packages still point at the archived
+// upstream org (github.com/atom/*); they are maintained in this fork, so repoint
+// them at the fork repository. Durable: registry deps are re-fetched on every
+// clean install, so this must run at build time.
+function patchBundledPackageRepositoryURLs(nodeModulesRoot) {
+  let patchedCount = 0;
+  if (!fs.existsSync(nodeModulesRoot)) {
+    return 0;
+  }
+  const FORK_URL = 'https://github.com/atomeditor-io/atom';
+  const FORK_GIT_URL = `git+${FORK_URL}.git`;
+  const UPSTREAM_URL_RE = /^(?:git\+)?https?:\/\/github\.com\/atom\//;
+  const rewrite = value => {
+    if (typeof value === 'string') {
+      if (!UPSTREAM_URL_RE.test(value)) {
+        return value;
+      }
+      return value.startsWith('git+') ? FORK_GIT_URL : FORK_URL;
+    }
+    if (value && typeof value === 'object') {
+      for (const key of ['url', 'web']) {
+        if (typeof value[key] === 'string') {
+          value[key] = rewrite(value[key]);
+        }
+      }
+    }
+    return value;
+  };
+  for (const entry of fs.readdirSync(nodeModulesRoot, {
+    withFileTypes: true
+  })) {
+    if (!entry.isDirectory() || entry.name.startsWith('.')) {
+      continue;
+    }
+    const pkgPath = path.join(nodeModulesRoot, entry.name, 'package.json');
+    if (!fs.existsSync(pkgPath)) {
+      continue;
+    }
+    let pkg;
+    try {
+      pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    } catch (e) {
+      continue;
+    }
+    let changed = false;
+    for (const field of ['repository', 'bugs', 'homepage']) {
+      if (pkg[field] === undefined) {
+        continue;
+      }
+      const before = JSON.stringify(pkg[field]);
+      pkg[field] = rewrite(pkg[field]);
+      if (JSON.stringify(pkg[field]) !== before) {
+        changed = true;
+      }
+    }
+    if (changed) {
+      fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+      console.log(`Patched ${entry.name}/package.json (repository → fork)`);
+      patchedCount++;
+    }
+  }
+  return patchedCount;
+}
+
 function patchGitHubWorkerSandbox(nodeModulesRoot) {
   const filePath = path.join(
     nodeModulesRoot,
@@ -1015,6 +1264,8 @@ function patchGrammarFileTypes(nodeModulesRoot) {
 
 module.exports = function patchNodeModules() {
   const root = path.join(CONFIG.repositoryRootPath, 'node_modules');
+  patchElectronRemoteUsage(root);
+  patchBundledPackageRepositoryURLs(root);
   transpileGithubEsm(root);
   patchDeprecatedUsage(root);
   patchDeadAtomApiNotifications(root);
@@ -1117,6 +1368,8 @@ function syncRebuiltNativesToIntermediate(nodeModulesRoot) {
 }
 
 module.exports.scrub = function scrubOutputTree(rootPath) {
+  patchElectronRemoteUsage(rootPath);
+  patchBundledPackageRepositoryURLs(path.join(rootPath, 'node_modules'));
   transpileGithubEsm(rootPath);
   removeNodeGypBins(rootPath);
 };

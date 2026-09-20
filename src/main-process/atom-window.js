@@ -9,6 +9,11 @@ const electronRemote = require('@electron/remote/main');
 // Rung 2 (tmiland-lab fork): Electron 14 removed the built-in remote module;
 // @electron/remote provides it. initialize() once, then enable() per window.
 electronRemote.initialize();
+// Windows created later (github package worker windows, dev tools, ...) need
+// enable() too, or every remote call inside them throws. Covers them all.
+app.on('browser-window-created', (event, createdWindow) => {
+  electronRemote.enable(createdWindow.webContents);
+});
 const getAppName = require('../get-app-name');
 const path = require('path');
 const url = require('url');
