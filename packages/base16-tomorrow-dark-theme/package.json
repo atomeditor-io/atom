@@ -8,7 +8,7 @@
     "dark",
     "syntax"
   ],
-  "repository": "https://github.com/atom/atom",
+  "repository": "https://github.com/atomeditor-io/atom",
   "license": "MIT",
   "engines": {
     "atom": ">0.49.0"
