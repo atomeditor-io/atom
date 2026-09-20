@@ -3,6 +3,7 @@
 const childProcess = require('child_process');
 const fs = require('fs-extra');
 const path = require('path');
+const { transpileGithubEsm } = require('./transpile-github-esm');
 
 const CONFIG = require('../config');
 
@@ -69,7 +70,6 @@ function initCallArgs(text, func) {
   return 'exports';
 }
 
-
 // first-mate scanner: oniguruma's OnigScanner is the native underline of every
 // syntax token. If it arrives as a SILENT placeholder (native loads, but
 // search ends up absent because the .node ABI is wrong for this Electron and
@@ -86,13 +86,15 @@ function patchFirstMateScannerLoudGuard(nodeModulesRoot) {
   const contents = fs.readFileSync(filePath, 'utf8');
   const marker = '[first-mate/scanner] OnigScanner is a SILENT PLACEHOLDER';
   if (contents.includes(marker)) return false;
-  const anchor = "scanner = new OnigScanner(patterns);";
+  const anchor = 'scanner = new OnigScanner(patterns);';
   if (!contents.includes(anchor)) return false;
   // OnigScanner.prototype has no `search` method: its real API on Electron is
   // `findNextMatchSync`. Only a stub/placeholder would lack it, so that is the
   // correct probe. (Checking `search` would false-positive on every healthy
   // native build and spam `[first-mate/scanner] SILENT PLACEHOLDER`.)
-  const guard = anchor + "\n      if ((scanner == null) || (typeof scanner.findNextMatchSync !== 'function')) {\n        try {\n          var requiredPath = require.resolve('oniguruma');\n          console.error(\n            '[first-mate/scanner] OnigScanner is a SILENT PLACEHOLDER (findNextMatchSync not a function). ' +\n            'Native tokenization is DISABLED in this build. native=' +\n            require.resolve('oniguruma/build/Release/onig_scanner.node') + ' ABI=' +\n            (process.versions != null ? process.versions.modules : '?')\n          );\n        } catch (e) {\n          console.error('[first-mate/scanner] oniguruma unresolvable: ' + e.message);\n        }\n      }";
+  const guard =
+    anchor +
+    "\n      if ((scanner == null) || (typeof scanner.findNextMatchSync !== 'function')) {\n        try {\n          var requiredPath = require.resolve('oniguruma');\n          console.error(\n            '[first-mate/scanner] OnigScanner is a SILENT PLACEHOLDER (findNextMatchSync not a function). ' +\n            'Native tokenization is DISABLED in this build. native=' +\n            require.resolve('oniguruma/build/Release/onig_scanner.node') + ' ABI=' +\n            (process.versions != null ? process.versions.modules : '?')\n          );\n        } catch (e) {\n          console.error('[first-mate/scanner] oniguruma unresolvable: ' + e.message);\n        }\n      }";
   const patched = contents.replace(anchor, guard);
   if (patched !== contents) {
     fs.writeFileSync(filePath, patched);
@@ -164,7 +166,12 @@ function patchContextAwareSources(nodeModulesRoot) {
       for (const entry of entries) {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) {
-          if (['node_modules', 'build', 'test', 'spec', 'vendor'].includes(entry.name)) continue;
+          if (
+            ['node_modules', 'build', 'test', 'spec', 'vendor'].includes(
+              entry.name
+            )
+          )
+            continue;
           stack.push([full, depth + 1]);
         } else if (/\.(cc|cpp|c)$/.test(entry.name)) {
           let text;
@@ -173,7 +180,10 @@ function patchContextAwareSources(nodeModulesRoot) {
           } catch (e) {
             continue;
           }
-          if (text.includes('NODE_MODULE_CONTEXT_AWARE') || !NODE_MODULE_RE.test(text)) {
+          if (
+            text.includes('NODE_MODULE_CONTEXT_AWARE') ||
+            !NODE_MODULE_RE.test(text)
+          ) {
             continue;
           }
           const replacement = text.replace(
@@ -223,14 +233,19 @@ function rebuildNativeAtPath(pkgRoot, label) {
     'bin',
     'node-gyp.js'
   );
-  console.log(`Rebuilding ${label} context-aware for Electron ${CONFIG.appMetadata.electronVersion}`);
+  console.log(
+    `Rebuilding ${label} context-aware for Electron ${
+      CONFIG.appMetadata.electronVersion
+    }`
+  );
   childProcess.spawnSync(
     process.execPath,
     [
       gypBin,
       'rebuild',
       '--target=' + CONFIG.appMetadata.electronVersion,
-      '--dist-url=' + (process.env.ATOM_ELECTRON_URL || 'https://electronjs.org/headers'),
+      '--dist-url=' +
+        (process.env.ATOM_ELECTRON_URL || 'https://electronjs.org/headers'),
       '--arch=' + (process.arch === 'arm64' ? 'arm64' : 'x64')
     ],
     { stdio: 'inherit', cwd: pkgRoot, env: process.env }
@@ -249,7 +264,11 @@ function rebuildNativeAtPath(pkgRoot, label) {
 // re-runs are fast). Console noise is suppressed; failures surface via rc.
 function ensureDirectory(command, cwd, description) {
   console.log(`Provisioning ${description}...`);
-  const result = childProcess.spawnSync(command, { cwd, stdio: 'inherit', env: process.env });
+  const result = childProcess.spawnSync(command, {
+    cwd,
+    stdio: 'inherit',
+    env: process.env
+  });
   if (result.status !== 0) {
     throw new Error(`could not provision ${description} (rc=${result.status})`);
   }
@@ -315,6 +334,28 @@ function rebuildNestedShippedNatives(root) {
           fs.existsSync(path.join(full, 'package.json')) &&
           fs.existsSync(path.join(full, 'binding.gyp'))
         ) {
+          // Nested copies of shipped natives resolve from the npm registry,
+          // whose sources still call V8 APIs removed in modern Electron
+          // (ArrayBuffer::GetContents, Function::CreationContext,
+          // Object::GetIsolate). Rebuilding them can never succeed; when
+          // the patched root copy has already been rebuilt against Electron
+          // above, swap it in wholesale — same trick as the per-package
+          // pre-seed below. Fall back to patch+rebuild for natives with no
+          // root-level build (e.g. keytar).
+          if (nativeBinaryPaths(path.join(root, entry.name)).length > 0) {
+            console.log(
+              `Replacing nested ${entry.name} with built root copy at ${full}`
+            );
+            fs.removeSync(full);
+            fs.copySync(path.join(root, entry.name), full);
+            stack.push([full, depth + 1]);
+            continue;
+          }
+          // The GCC 14 <cstdint> fix is applied to the root-level copy by
+          // patchNodeModules(); nested copies (e.g. under text-buffer) are
+          // fresh from a clean install and need the same patch before gyp
+          // can compile them.
+          patchSuperstringSources(dir);
           rebuildNativeAtPath(full, entry.name + ' (nested)');
           stack.push([full, depth + 1]);
         } else {
@@ -353,7 +394,10 @@ function reseedNestedNativeCopies(repositoryRootPath, nodeModulesRoot, pkg) {
         if (!entry.isDirectory()) continue;
         if (entry.name === pkg && path.dirname(full) !== nodeModulesRoot) {
           const destDir = path.join(full, 'build', 'Release');
-          if (fs.existsSync(path.join(full, 'package.json')) && fs.existsSync(destDir)) {
+          if (
+            fs.existsSync(path.join(full, 'package.json')) &&
+            fs.existsSync(destDir)
+          ) {
             for (const bin of binaries) {
               fs.copyFileSync(bin, path.join(destDir, path.basename(bin)));
             }
@@ -389,13 +433,13 @@ function patchDeprecatedUsage(nodeModulesRoot) {
     {
       relative: ['github', 'lib', 'views', 'git-timings-view.js'],
       marker: 'componentWillReceiveProps(',
-      re: /^  componentWillReceiveProps\(/m,
+      re: /^ {2}componentWillReceiveProps\(/m,
       replacement: '  UNSAFE_componentWillReceiveProps('
     },
     {
       relative: ['github', 'lib', 'atom', 'commands.js'],
       marker: 'componentWillReceiveProps(',
-      re: /^  componentWillReceiveProps\(/m,
+      re: /^ {2}componentWillReceiveProps\(/m,
       replacement: '  UNSAFE_componentWillReceiveProps('
     }
   ];
@@ -435,8 +479,8 @@ function patchDeadAtomApiNotifications(nodeModulesRoot) {
           '      .then (r) -> if r.ok then r.json() else Promise.resolve null'
         ],
         [
-          '  checkAtomUpToDate: ->\n    @getLatestAtomData().then (latestAtomData) ->\n      installedVersion = atom.getVersion()?.replace(/-.*$/, \'\')',
-          '  checkAtomUpToDate: ->\n    @getLatestAtomData().then (latestAtomData) ->\n      return null unless latestAtomData?\n      installedVersion = atom.getVersion()?.replace(/-.*$/, \'\')'
+          "  checkAtomUpToDate: ->\n    @getLatestAtomData().then (latestAtomData) ->\n      installedVersion = atom.getVersion()?.replace(/-.*$/, '')",
+          "  checkAtomUpToDate: ->\n    @getLatestAtomData().then (latestAtomData) ->\n      return null unless latestAtomData?\n      installedVersion = atom.getVersion()?.replace(/-.*$/, '')"
         ],
         [
           '  checkPackageUpToDate: (packageName) ->\n    @getLatestPackageData(packageName).then (latestPackageData) =>\n      installedVersion = @getPackageVersion(packageName)',
@@ -472,8 +516,8 @@ function patchDeadAtomApiNotifications(nodeModulesRoot) {
           'Discussions is the best place for getting support: https://github.com/atomeditor-io/atom/discussions'
         ],
         [
-          '    * Reproduced the problem in Safe Mode: <https://flight-manual.atom.io/hacking-atom/sections/debugging/#using-safe-mode>\n    * Followed all applicable steps in the debugging guide: <https://flight-manual.atom.io/hacking-atom/sections/debugging/>\n    * Checked the FAQs on the message board for common solutions: <https://discuss.atom.io/c/faq>\n    * Checked that your issue isn\'t already filed: <https://github.com/issues?q=is%3Aissue+user%3Aatom>',
-          '    * Reproduced the problem in Safe Mode\n    * Checked that your issue isn\'t already filed: <https://github.com/atomeditor-io/atom/issues?q=is%3Aissue+user%3Aatomeditor-io>'
+          "    * Reproduced the problem in Safe Mode: <https://flight-manual.atom.io/hacking-atom/sections/debugging/#using-safe-mode>\n    * Followed all applicable steps in the debugging guide: <https://flight-manual.atom.io/hacking-atom/sections/debugging/>\n    * Checked the FAQs on the message board for common solutions: <https://discuss.atom.io/c/faq>\n    * Checked that your issue isn't already filed: <https://github.com/issues?q=is%3Aissue+user%3Aatom>",
+          "    * Reproduced the problem in Safe Mode\n    * Checked that your issue isn't already filed: <https://github.com/atomeditor-io/atom/issues?q=is%3Aissue+user%3Aatomeditor-io>"
         ],
         [
           'an Atom package that provides the described functionality: <https://atom.io/packages>',
@@ -486,12 +530,9 @@ function patchDeadAtomApiNotifications(nodeModulesRoot) {
       replacements: [
         [
           '        return\n    else\n      Promise.resolve()',
-          '        return\n      .catch (e) =>\n        fatalNotification.innerHTML += " You can help by creating an issue. Please explain what actions triggered this error."\n        issueButton.addEventListener \'click\', (e) =>\n          e.preventDefault()\n          issueButton.classList.add(\'opening\')\n          @issue.getIssueUrlForSystem().then (issueUrl) ->\n            shell.openExternal(issueUrl)\n            issueButton.classList.remove(\'opening\')\n    else\n      Promise.resolve()'
+          "        return\n      .catch (e) =>\n        fatalNotification.innerHTML += \" You can help by creating an issue. Please explain what actions triggered this error.\"\n        issueButton.addEventListener 'click', (e) =>\n          e.preventDefault()\n          issueButton.classList.add('opening')\n          @issue.getIssueUrlForSystem().then (issueUrl) ->\n            shell.openExternal(issueUrl)\n            issueButton.classList.remove('opening')\n    else\n      Promise.resolve()"
         ],
-        [
-          'Create issue on atom/atom',
-          'Create issue on atomeditor-io/atom'
-        ]
+        ['Create issue on atom/atom', 'Create issue on atomeditor-io/atom']
       ]
     }
   ];
@@ -511,7 +552,11 @@ function patchDeadAtomApiNotifications(nodeModulesRoot) {
     }
     if (anyPatched) {
       fs.writeFileSync(filePath, contents);
-      console.log(`Patched ${file.relative.join('/')} (dead atom.io API / create-issue button)`);
+      console.log(
+        `Patched ${file.relative.join(
+          '/'
+        )} (dead atom.io API / create-issue button)`
+      );
     }
   }
 }
@@ -561,7 +606,10 @@ function patchTreeSitterFrozenPoint(repositoryRootPath) {
     contents = contents.replace(oldBlock, newBlock);
     fs.writeFileSync(filePath, contents);
     patchedAny = true;
-    console.log('Patched tree-sitter-language-mode.js (frozen Point guard):', filePath);
+    console.log(
+      'Patched tree-sitter-language-mode.js (frozen Point guard):',
+      filePath
+    );
   }
   return patchedAny;
 }
@@ -631,7 +679,10 @@ function patchTreeSitterNullRootNode(repositoryRootPath) {
     if (!changed) continue;
     fs.writeFileSync(filePath, contents);
     patchedAny = true;
-    console.log('Patched tree-sitter-language-mode.js (null root-node guard):', filePath);
+    console.log(
+      'Patched tree-sitter-language-mode.js (null root-node guard):',
+      filePath
+    );
   }
   return patchedAny;
 }
@@ -697,7 +748,9 @@ function patchTreeViewGetTime(nodeModulesRoot) {
     }
     if (anyPatched) {
       fs.writeFileSync(filePath, contents);
-      console.log(`Patched ${file.relative.join('/')} (tree-view getTime null guard)`);
+      console.log(
+        `Patched ${file.relative.join('/')} (tree-view getTime null guard)`
+      );
     }
   }
 }
@@ -734,7 +787,10 @@ function superstringIsBuilt(nodeModulesRoot) {
     'build',
     'Release'
   );
-  return fs.existsSync(buildDir) && fs.readdirSync(buildDir).some(f => f.endsWith('.node'));
+  return (
+    fs.existsSync(buildDir) &&
+    fs.readdirSync(buildDir).some(f => f.endsWith('.node'))
+  );
 }
 
 function buildSuperstring() {
@@ -744,13 +800,16 @@ function buildSuperstring() {
     [
       'rebuild',
       '--target=' + CONFIG.appMetadata.electronVersion,
-      '--disturl=' + (process.env.ATOM_ELECTRON_URL || 'https://electronjs.org/headers'),
+      '--disturl=' +
+        (process.env.ATOM_ELECTRON_URL || 'https://electronjs.org/headers'),
       '--arch=x64'
     ],
-    { env: process.env, cwd: path.join(CONFIG.repositoryRootPath, 'node_modules', 'superstring') }
+    {
+      env: process.env,
+      cwd: path.join(CONFIG.repositoryRootPath, 'node_modules', 'superstring')
+    }
   );
 }
-
 
 function removeNodeGypBins(nodeModulesRoot) {
   const gypBins = [];
@@ -767,9 +826,9 @@ function removeNodeGypBins(nodeModulesRoot) {
     for (const entry of entries) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
-        if (entry.name === "node_gyp_bins") {
+        if (entry.name === 'node_gyp_bins') {
           gypBins.push(full);
-        } else if (entry.name !== ".bin") {
+        } else if (entry.name !== '.bin') {
           stack.push([full, depth + 1]);
         }
       }
@@ -779,7 +838,7 @@ function removeNodeGypBins(nodeModulesRoot) {
     fs.removeSync(dir);
   }
   if (gypBins.length) {
-    console.log("Removed " + gypBins.length + " node_gyp_bins dirs");
+    console.log('Removed ' + gypBins.length + ' node_gyp_bins dirs');
   }
 }
 
@@ -789,8 +848,14 @@ function removeNodeGypBins(nodeModulesRoot) {
 // versions. (info.GetIsolate() on callback info is still fine and untouched.)
 function patchRemovedIsolateGetters(nodeModulesRoot) {
   const replacementsByNeedle = [
-    ['Isolate* isolate = exports->GetIsolate();', 'Isolate* isolate = v8::Isolate::GetCurrent();'],
-    ['v8::Isolate* isolate = context->GetIsolate();', 'v8::Isolate* isolate = v8::Isolate::GetCurrent();']
+    [
+      'Isolate* isolate = exports->GetIsolate();',
+      'Isolate* isolate = v8::Isolate::GetCurrent();'
+    ],
+    [
+      'v8::Isolate* isolate = context->GetIsolate();',
+      'v8::Isolate* isolate = v8::Isolate::GetCurrent();'
+    ]
   ];
   let patched = [];
   for (const pkg of SHIPPED_NATIVE_PACKAGES) {
@@ -834,13 +899,129 @@ function patchRemovedIsolateGetters(nodeModulesRoot) {
   }
 }
 
+function patchGrammarFileTypes(nodeModulesRoot) {
+  // [atom-revival] generic safety net: file:-dep packages in packages/language-*
+  // must exist in node_modules with their grammars before the asar is packed.
+  // npm has been observed to skip syncing some of them on incremental installs.
+  const localPackagesDir = path.join(CONFIG.repositoryRootPath, 'packages');
+  if (fs.existsSync(localPackagesDir)) {
+    for (const entry of fs.readdirSync(localPackagesDir)) {
+      if (!entry.startsWith('language-')) continue;
+      const srcDir = path.join(localPackagesDir, entry);
+      const srcGrammarDir = path.join(srcDir, 'grammars');
+      if (!fs.existsSync(srcGrammarDir)) continue;
+      const destDir = path.join(nodeModulesRoot, entry);
+      let seeded = false;
+      for (const grammarFile of fs.readdirSync(srcGrammarDir)) {
+        const src = path.join(srcGrammarDir, grammarFile);
+        const dest = path.join(destDir, 'grammars', grammarFile);
+        if (!fs.existsSync(dest)) {
+          fs.ensureDirSync(path.dirname(dest));
+          fs.copyFileSync(src, dest);
+          seeded = true;
+        }
+      }
+      const srcPkg = path.join(srcDir, 'package.json');
+      const destPkg = path.join(destDir, 'package.json');
+      if (fs.existsSync(srcPkg) && !fs.existsSync(destPkg)) {
+        fs.ensureDirSync(destDir);
+        fs.copyFileSync(srcPkg, destPkg);
+        seeded = true;
+      }
+      if (seeded)
+        console.log(`patchGrammarFileTypes: seeded ${entry} into node_modules`);
+    }
+  }
+  // [atom-revival] tree-sitter grammars claim fileTypes that TextMate grammars
+  // don't; with useTreeSitterParsers=false those extensions would resolve to the
+  // Null grammar. Backfill them into the TM grammars (idempotent).
+  const targets = [
+    {
+      file: path.join(
+        nodeModulesRoot,
+        'language-javascript',
+        'grammars',
+        'javascript.cson'
+      ),
+      anchor: /('fileTypes': \[\n)( {2}'js'\n)/,
+      insert: "  'jsx'\n"
+    },
+    {
+      file: path.join(
+        nodeModulesRoot,
+        'language-html',
+        'grammars',
+        'html.cson'
+      ),
+      anchor: /('fileTypes': \[\n)( {2}'ejs'\n)/,
+      insert: "  'erb'\n"
+    },
+    {
+      file: path.join(
+        nodeModulesRoot,
+        'language-html',
+        'grammars',
+        'html.cson'
+      ),
+      anchor: /( {2}'html'\n)( {2}'kit'\n)/,
+      insert: "  'html.ejs'\n  'html.erb'\n"
+    }
+  ];
+  for (const target of targets) {
+    if (!fs.existsSync(target.file)) {
+      console.warn(`patchGrammarFileTypes: missing ${target.file}`);
+      continue;
+    }
+    const contents = fs.readFileSync(target.file, 'utf8');
+    if (!contents.includes(target.insert.trim())) {
+      const patched = contents.replace(target.anchor, `$1$2${target.insert}`);
+      if (patched === contents) {
+        console.warn(
+          `patchGrammarFileTypes: anchor not found in ${target.file}`
+        );
+      } else {
+        fs.writeFileSync(target.file, patched);
+        console.log(
+          `patchGrammarFileTypes: patched ${path.relative(
+            nodeModulesRoot,
+            target.file
+          )} (+ ${target.insert.trim().replace(/\n/g, ' ')})`
+        );
+      }
+    }
+  }
+  // [atom-revival] language-rust-bundled has no TextMate grammar at all; seed one
+  // from the repo package dir so .rs files highlight with useTreeSitterParsers=false.
+  const rustSource = path.join(
+    CONFIG.repositoryRootPath,
+    'packages',
+    'language-rust-bundled',
+    'grammars',
+    'rust.cson'
+  );
+  const rustDest = path.join(
+    nodeModulesRoot,
+    'language-rust-bundled',
+    'grammars',
+    'rust.cson'
+  );
+  if (fs.existsSync(rustSource) && !fs.existsSync(rustDest)) {
+    fs.copyFileSync(rustSource, rustDest);
+    console.log(
+      'patchGrammarFileTypes: seeded rust.cson into language-rust-bundled'
+    );
+  }
+}
+
 module.exports = function patchNodeModules() {
   const root = path.join(CONFIG.repositoryRootPath, 'node_modules');
+  transpileGithubEsm(root);
   patchDeprecatedUsage(root);
   patchDeadAtomApiNotifications(root);
   patchGitHubWorkerSandbox(root);
   patchFirstMateScannerLoudGuard(root);
   patchTreeViewGetTime(root);
+  patchGrammarFileTypes(root);
   const patched = patchSuperstringSources(root);
   removeNodeGypBins(root);
   if (patched && !superstringIsBuilt(root)) {
@@ -897,8 +1078,45 @@ module.exports = function patchNodeModules() {
       }
     }
   }
+  syncRebuiltNativesToIntermediate(root);
 };
 
+// script/build runs copyAssets() BEFORE patchNodeModules(), so
+// CONFIG.intermediateAppPath already holds a snapshot of the tree with
+// empty/absent native build output. Mirror every `.node` product rebuilt in
+// the tree above into out/app so electron-packager ships working natives.
+function syncRebuiltNativesToIntermediate(nodeModulesRoot) {
+  const destRoot = path.join(CONFIG.intermediateAppPath, 'node_modules');
+  if (!fs.existsSync(destRoot)) return;
+  const stack = [nodeModulesRoot];
+  let copied = 0;
+  while (stack.length) {
+    const dir = stack.pop();
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (e) {
+      continue;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(full);
+        continue;
+      }
+      if (!/\.node$/.test(entry.name)) continue;
+      const dest = path.join(destRoot, path.relative(nodeModulesRoot, full));
+      fs.ensureDirSync(path.dirname(dest));
+      fs.copyFileSync(full, dest);
+      copied++;
+    }
+  }
+  console.log(
+    `Synced ${copied} native binaries into ${CONFIG.intermediateAppPath}`
+  );
+}
+
 module.exports.scrub = function scrubOutputTree(rootPath) {
+  transpileGithubEsm(rootPath);
   removeNodeGypBins(rootPath);
 };

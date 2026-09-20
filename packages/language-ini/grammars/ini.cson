@@ -1,0 +1,76 @@
+'name': 'INI'
+'scopeName': 'source.ini'
+'fileTypes': [
+  'ini'
+  'inf'
+  'desktop'
+  'service'
+  'target'
+  'socket'
+  'mount'
+  'automount'
+  'swap'
+  'path'
+  'timer'
+  'slice'
+  'scope'
+  'device'
+  'network'
+  'netdev'
+  'link'
+]
+'patterns': [
+  {
+    'match': '\\s*(;|#).*$'
+    'name': 'comment.line.semicolon.ini'
+    'captures':
+      '1':
+        'name': 'punctuation.definition.comment.ini'
+  }
+  {
+    'match': '^\\s*\\[[^\\]]*\\]\\s*$'
+    'name': 'entity.name.section-group.ini'
+    'captures':
+      '0':
+        'name': 'punctuation.section-group.begin.ini'
+  }
+  {
+    'match': '([A-Za-z_][A-Za-z0-9_.-]*)\\s*(=)'
+    'captures':
+      '1':
+        'name': 'entity.name.tag.ini'
+      '2':
+        'name': 'punctuation.separator.key-value.ini'
+  }
+  {
+    'match': '^\\s*[A-Za-z_][A-Za-z0-9_.-]*'
+    'captures':
+      '0':
+        'name': 'keyword.control.ini'
+  }
+  {
+    'match': '\\$?\\{[^}]*\\}'
+    'name': 'variable.other.interpolation.ini'
+  }
+  {
+    'begin': '"'
+    'beginCaptures':
+      '0':
+        'name': 'punctuation.definition.string.begin.ini'
+    'end': '"'
+    'endCaptures':
+      '0':
+        'name': 'punctuation.definition.string.end.ini'
+    'name': 'string.quoted.double.ini'
+    'patterns': [
+      {
+        'match': '\\\\.'
+        'name': 'constant.character.escape.ini'
+      }
+    ]
+  }
+  {
+    'match': "'(?:\\\\.|[^\\\\'])*'"
+    'name': 'string.quoted.single.ini'
+  }
+]

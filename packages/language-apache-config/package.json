@@ -1,0 +1,9 @@
+{
+  "name": "language-apache-config",
+  "version": "0.2.0",
+  "description": "Syntax highlighting for Apache configuration files.",
+  "license": "MIT",
+  "engines": {
+    "atom": "*"
+  }
+}

@@ -1,0 +1,174 @@
+'scopeName': 'source.json.jsonc'
+'name': 'JSON with Comments'
+'fileTypes': [
+  'jsonc'
+  'json5'
+  'jsconfig.json'
+  'tsconfig.json'
+  'tsconfig.base.json'
+]
+'patterns': [
+  {
+    'include': '#comments'
+  }
+  {
+    'include': '#value'
+  }
+]
+'repository':
+  'comments':
+    'patterns': [
+      {
+        'begin': '/\\*'
+        'end': '\\*/'
+        'name': 'comment.block.json'
+      }
+      {
+        'match': '//[^\\n]*'
+        'name': 'comment.line.double-slash.json'
+      }
+    ]
+  'object':
+    'begin': '\\{'
+    'beginCaptures':
+      '0':
+        'name': 'punctuation.section.block.begin.json'
+    'end': '\\}'
+    'endCaptures':
+      '0':
+        'name': 'punctuation.section.block.end.json'
+    'name': 'meta.structure.dictionary.json'
+    'patterns': [
+      {
+        'include': '#comments'
+      }
+      {
+        'include': '#propertyName'
+      }
+      {
+        'match': ':'
+        'name': 'punctuation.separator.dictionary.key-value.json'
+      }
+      {
+        'match': ','
+        'name': 'punctuation.separator.dictionary.json'
+      }
+      {
+        'match': '}'
+        'name': 'invalid.illegal.unbalanced-close-bracket.json'
+      }
+      {
+        'include': '#value'
+      }
+    ]
+  'array':
+    'begin': '\\['
+    'beginCaptures':
+      '0':
+        'name': 'punctuation.section.block.begin.json'
+    'end': '\\]'
+    'endCaptures':
+      '0':
+        'name': 'punctuation.section.block.end.json'
+    'name': 'meta.structure.array.json'
+    'patterns': [
+      {
+        'include': '#comments'
+      }
+      {
+        'match': ','
+        'name': 'punctuation.separator.array.json'
+      }
+      {
+        'match': '\\]'
+        'name': 'invalid.illegal.unbalanced-close-bracket.json'
+      }
+      {
+        'include': '#value'
+      }
+    ]
+  'string':
+    'begin': '"'
+    'beginCaptures':
+      '0':
+        'name': 'punctuation.definition.string.begin.json'
+    'end': '"'
+    'endCaptures':
+      '0':
+        'name': 'punctuation.definition.string.end.json'
+    'name': 'string.quoted.double.json'
+    'patterns': [
+      {
+        'include': '#stringcontent'
+      }
+    ]
+  'propertyName':
+    'begin': '(")((?:\\\\.|[^"\\\\])*?)(")'
+    'beginCaptures':
+      '1':
+        'name': 'punctuation.definition.property.begin.json'
+      '2':
+        'name': 'support.type.property-name.json'
+      '3':
+        'name': 'punctuation.definition.property.end.json'
+    'end': '(;)'
+    'endCaptures':
+      '0':
+        'name': 'invalid.illegal.semicolon.between-properties.json'
+    'name': 'support.type.property-name.json'
+    'patterns': [
+      {
+        'include': '#stringcontent'
+      }
+    ]
+  'stringcontent':
+    'patterns': [
+      {
+        'match': '''
+          (?x)                # free-spacing mode
+          \\\\(               # literal backslash
+            ["\\\\/bfnrt]     # typical escapes
+            |                 # or
+            u[0-9a-fA-F]{4}   # a u and four hex digits
+          )
+        '''
+        'name': 'constant.character.escape.json'
+      }
+      {
+        'match': '\\\\.'
+        'name': 'invalid.illegal.unrecognized-string-escape.json'
+      }
+    ]
+  'number':
+    'match': '[0-9]'
+    'name': 'constant.numeric.json'
+    'patterns': [
+      {
+        'match': '''
+          (?x)  # free-spacing mode
+          [0-9]  # a single digit
+        '''
+        'name': 'constant.numeric.json'
+      }
+    ]
+  'constant':
+    'match': '\\b(true|false|null)\\b'
+    'name': 'constant.language.json'
+  'value':
+    'patterns': [
+      {
+        'include': '#constant'
+      }
+      {
+        'include': '#number'
+      }
+      {
+        'include': '#string'
+      }
+      {
+        'include': '#array'
+      }
+      {
+        'include': '#object'
+      }
+    ]

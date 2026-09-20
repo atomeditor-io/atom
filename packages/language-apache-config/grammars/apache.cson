@@ -1,0 +1,76 @@
+'name': 'Apache Config'
+'scopeName': 'source.apache-config'
+'fileTypes': [
+  'conf'
+  'htaccess'
+]
+'patterns': [
+  {
+    'captures':
+      '1':
+        'name': 'punctuation.definition.comment.apache-config'
+    'match': '(#).*$'
+    'name': 'comment.line.number-sign.apache-config'
+  }
+  {
+    'begin': '(<)(/?)'
+    'beginCaptures':
+      '1':
+        'name': 'punctuation.section.group.begin.apache-config'
+      '2':
+        'name': 'punctuation.section.group.begin.apache-config'
+    'end': '(>)'
+    'endCaptures':
+      '1':
+        'name': 'punctuation.section.group.end.apache-config'
+    'name': 'meta.scope.section.apache-config'
+    'patterns': [
+      {
+        'match': '[A-Za-z][A-Za-z0-9-]*'
+        'name': 'entity.name.function.apache-config'
+      }
+      {
+        'match': '\\b(IfModule|IfDefine|IfVersion|If|ElseIf|Else|VirtualHost|Directory|DirectoryMatch|Files|FilesMatch|Location|LocationMatch|Proxy|ProxyMatch|Limit|LimitExcept|Macro)\\b'
+        'name': 'keyword.control.apache-config'
+      }
+    ]
+  }
+  {
+    'match': '\\b(Alias|AliasMatch|ScriptAlias|Redirect|RedirectMatch|RewriteEngine|RewriteRule|RewriteCond|ProxyPass|ProxyPassReverse|ErrorDocument|DocumentRoot|ServerName|ServerAlias|ServerAdmin|Listen|LoadModule|Include|IncludeOptional|DirectoryIndex|Options|AllowOverride|Require|Order|Deny|Allow|Satisfy|AuthType|AuthName|AuthUserFile|AuthGroupFile|SetEnv|SetEnvIf|Header|ExpiresActive|ExpiresByType|NameVirtualHost|UseCanonicalName|ServerSignature|ServerTokens|ErrorLog|CustomLog|LogLevel|LogFormat|BrowserMatch|AddType|AddHandler|AddOutputFilter|SetHandler|AddDefaultCharset|User|Group|PidFile)\\b'
+    'name': 'keyword.control.directive.apache-config'
+  }
+  {
+    'match': '\\b(On|Off|True|False|All|None|Deny|Allow|Granted|Denied|Indexes|Includes|FollowSymLinks|MultiViews|NoCase|Server-Status|Server-Info|SSL|Proxy|Permanent|Temporary|RedirectTemp|RedirectPermanent)\\b'
+    'name': 'constant.language.apache-config'
+  }
+  {
+    'begin': '"'
+    'beginCaptures':
+      '0':
+        'name': 'punctuation.definition.string.begin.apache-config'
+    'end': '"'
+    'endCaptures':
+      '0':
+        'name': 'punctuation.definition.string.end.apache-config'
+    'name': 'string.quoted.double.apache-config'
+  }
+  {
+    'begin': "'"
+    'beginCaptures':
+      '0':
+        'name': 'punctuation.definition.string.begin.apache-config'
+    'end': "'"
+    'endCaptures':
+      '0':
+        'name': 'punctuation.definition.string.end.apache-config'
+    'name': 'string.quoted.single.apache-config'
+  }
+  {
+    'match': '([$%]?\\{?[A-Za-z_:][A-Za-z0-9_.:/-]*\\}?)'
+    'name': 'variable.other.apache-config'
+  }
+  {
+    'match': '\\b[0-9]+\\b'
+    'name': 'constant.numeric.apache-config'
+  }
+]

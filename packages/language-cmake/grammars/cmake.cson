@@ -1,0 +1,102 @@
+'name': 'CMake'
+'scopeName': 'source.cmake'
+'fileTypes': [
+  'cmake'
+  'CMakeLists.txt'
+]
+'firstLineMatch': '^cmake_minimum_required'
+'patterns': [
+  {
+    'match': '#.*$'
+    'name': 'comment.line.number-sign.cmake'
+  }
+  {
+    'include': '#strings'
+  }
+  {
+    'include': '#variables'
+  }
+  {
+    'match': '\\b[A-Z_][A-Z0-9_]*\\s*\\('
+    'name': 'support.function.build.cmake'
+  }
+  {
+    'match': '\\b(if|elseif|else|endif|foreach|endforeach|while|endwhile|function|endfunction|macro|endmacro|block|endblock|return|break|continue|include|include_guard|add_subdirectory|project|cmake_minimum_required|set|unset|list|string|math|file|message|add_library|add_executable|add_custom_command|add_custom_target|add_dependencies|target_link_libraries|target_include_directories|target_compile_definitions|target_compile_options|target_sources|install|find_package|find_program|find_library|find_file|find_path|option|cmake_policy|enable_language|export|import|configure_file|execute_process)\\b'
+    'name': 'keyword.control.cmake'
+  }
+  {
+    'match': '\\b(ON|OFF|TRUE|FALSE|YES|NO|Y|N|QUIET|REQUIRED|INTERFACE|PRIVATE|PUBLIC|STATIC|SHARED|MODULE|OBJECT|EXCLUDE_FROM_ALL|GLOBAL|CACHE)\\b'
+    'name': 'constant.language.cmake'
+  }
+  {
+    'match': '\\b(0[xX][0-9A-Fa-f]+|\\d+([.][0-9]+)?([eE][+-]?\\d+)?)\\b'
+    'name': 'constant.numeric.cmake'
+  }
+  {
+    'match': '[-/.?=:<>&|;!()\\[\\]{}]'
+    'name': 'keyword.operator.cmake'
+  }
+]
+'repository':
+  'strings':
+    'patterns': [
+      {
+        'begin': '"'
+        'beginCaptures':
+          '0':
+            'name': 'punctuation.definition.string.begin.cmake'
+        'end': '"'
+        'endCaptures':
+          '0':
+            'name': 'punctuation.definition.string.end.cmake'
+        'name': 'string.quoted.double.cmake'
+        'patterns': [
+          {
+            'include': '#variables'
+          }
+          {
+            'match': '\\\\.'
+            'name': 'constant.character.escape.cmake'
+          }
+        ]
+      }
+      {
+        'begin': '\\[=*\\['
+        'beginCaptures':
+          '0':
+            'name': 'punctuation.definition.string.begin.cmake'
+        'end': '\\]=*\\]'
+        'endCaptures':
+          '0':
+            'name': 'punctuation.definition.string.end.cmake'
+        'name': 'string.quoted.long.cmake'
+      }
+      {
+        'match': '\\[[^\\]\\n]*\\]'
+        'name': 'string.unquoted.cmake'
+      }
+    ]
+  'variables':
+    'patterns': [
+      {
+        'match': '\\$\\{[^}]*\\}'
+        'name': 'variable.other.cmake'
+        'captures':
+          '0':
+            'name': 'variable.other.cmake'
+      }
+      {
+        'match': '\\$ENV\\{[^}]*\\}'
+        'name': 'support.constant.environment.cmake'
+        'captures':
+          '0':
+            'name': 'support.constant.environment.cmake'
+      }
+      {
+        'match': '\\$<[^>]*>'
+        'name': 'constant.other.bracket.cmake'
+        'captures':
+          '0':
+            'name': 'constant.other.bracket.cmake'
+      }
+    ]

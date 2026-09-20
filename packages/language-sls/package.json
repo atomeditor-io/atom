@@ -1,0 +1,9 @@
+{
+  "name": "language-sls",
+  "version": "0.18.0",
+  "description": "Syntax highlighting for SaltStack SLS files.",
+  "license": "MIT",
+  "engines": {
+    "atom": "*"
+  }
+}

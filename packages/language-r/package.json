@@ -1,0 +1,9 @@
+{
+  "name": "language-r",
+  "version": "0.2.9",
+  "description": "Syntax highlighting for R files.",
+  "license": "MIT",
+  "engines": {
+    "atom": "*"
+  }
+}

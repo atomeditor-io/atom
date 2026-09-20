@@ -152,7 +152,7 @@ module.exports = function start(resourcePath, devResourcePath, startTime) {
 
   app.on('second-instance', (event, secondArgv, secondWorkingDirectory) => {
     event.preventDefault();
-    const secondArgs = ArgParser.parse(secondArgv.slice(1));
+    const secondArgs = ArgParser(secondArgv.slice(1));
     const secondPathsToOpen = secondArgs.pathsToOpen || [];
     const secondUrlsToOpen = secondArgs.urlsToOpen || [];
     const secondNewWindow = secondArgs['new-window'];

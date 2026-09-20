@@ -1,0 +1,9 @@
+{
+  "name": "language-diff",
+  "version": "0.7.0",
+  "description": "Syntax highlighting for patch files.",
+  "license": "MIT",
+  "engines": {
+    "atom": "*"
+  }
+}

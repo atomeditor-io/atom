@@ -1,0 +1,9 @@
+{
+  "name": "language-gitignore",
+  "version": "0.4.0",
+  "description": "Syntax highlighting for .gitignore-style ignore files.",
+  "license": "MIT",
+  "engines": {
+    "atom": "*"
+  }
+}

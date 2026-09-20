@@ -1,0 +1,9 @@
+{
+  "name": "language-vue",
+  "version": "0.21.2",
+  "description": "Syntax highlighting for Vue single-file components.",
+  "license": "MIT",
+  "engines": {
+    "atom": "*"
+  }
+}

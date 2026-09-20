@@ -1,0 +1,9 @@
+{
+  "name": "language-lua",
+  "version": "0.9.8",
+  "description": "Syntax highlighting for Lua files.",
+  "license": "MIT",
+  "engines": {
+    "atom": "*"
+  }
+}

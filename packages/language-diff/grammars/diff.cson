@@ -1,0 +1,75 @@
+'name': 'Diff'
+'scopeName': 'source.diff'
+'fileTypes': [
+  'diff'
+  'patch'
+  'rej'
+]
+'patterns': [
+  {
+    'match': '^\\s*\\*{15,}'
+    'name': 'comment.block.diff'
+    'captures':
+      '0':
+        'name': 'punctuation.definition.comment.diff'
+  }
+  {
+    'match': '^@@\\s*-[\\d,]+\\s*\\+[\\d,]+\\s*@@[^\\n]*'
+    'name': 'meta.diff.header'
+    'captures':
+      '0':
+        'name': 'punctuation.definition.header.diff'
+  }
+  {
+    'match': '^(\\+\\+\\+|\\-\\-\\-)\\s*(.*)$'
+    'name': 'meta.diff.header.from-file'
+    'captures':
+      '1':
+        'name': 'punctuation.definition.from-file.diff'
+      '2':
+        'name': 'string.unquoted.from-file.diff'
+  }
+  {
+    'match': '^\\+.*$'
+    'name': 'markup.inserted.diff'
+  }
+  {
+    'match': '^-.*$'
+    'name': 'markup.deleted.diff'
+  }
+  {
+    'match': '^[!~].*$'
+    'name': 'markup.changed.diff'
+  }
+  {
+    'match': '^\\s*(Index|index):?.*$'
+    'name': 'meta.diff.index'
+  }
+  {
+    'match': '^(new file mode|deleted file mode|old mode|new mode|rename from|rename to|copied from|copied to|similarity index|dissimilarity index|Binary files?):?.*$'
+    'name': 'meta.diff.entry.diff'
+  }
+  {
+    'match': '^diff --git .*$'
+    'name': 'meta.diff.githeader'
+  }
+  {
+    'begin': '^\\s*(<<<<<<<|>>>>>>>)\\s*(.*)$'
+    'beginCaptures':
+      '1':
+        'name': 'punctuation.definition.conflict-marker.diff'
+      '2':
+        'name': 'string.unquoted.conflict-header.diff'
+    'end': '^\\s*(>>>>>>>|=+)\\s*.*$'
+    'endCaptures':
+      '1':
+        'name': 'punctuation.definition.conflict-marker.diff'
+    'name': 'markup.conflict.diff'
+    'patterns': [
+      {
+        'match': '^=======.*$'
+        'name': 'punctuation.definition.conflict-marker.diff'
+      }
+    ]
+  }
+]

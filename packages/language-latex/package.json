@@ -1,0 +1,9 @@
+{
+  "name": "language-latex",
+  "version": "1.2.0",
+  "description": "Syntax highlighting for LaTeX files.",
+  "license": "MIT",
+  "engines": {
+    "atom": "*"
+  }
+}

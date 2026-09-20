@@ -1,0 +1,9 @@
+{
+  "name": "language-docker",
+  "version": "1.8.1",
+  "description": "Syntax highlighting for Dockerfiles.",
+  "license": "MIT",
+  "engines": {
+    "atom": "*"
+  }
+}
