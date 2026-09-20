@@ -317,9 +317,13 @@ class TreeSitterLanguageMode {
 
     let smallestRange;
     this._forEachTreeWithRange(new Range(point, point), (tree, grammar) => {
-      let node = tree.rootNode.descendantForPosition(
-        this.buffer.clipPosition(point)
-      );
+      // [atom-revival] missing-api-guard: rebuilt tree-sitter bindings may not
+      // expose descendantForPosition; degrade to no fold detection.
+      let node =
+        tree.rootNode &&
+        typeof tree.rootNode.descendantForPosition === 'function'
+          ? tree.rootNode.descendantForPosition(this.buffer.clipPosition(point))
+          : null;
       while (node) {
         if (existenceOnly && node.startPosition.row < point.row) return;
         if (node.endPosition.row > point.row) {
@@ -452,9 +456,12 @@ class TreeSitterLanguageMode {
     let smallestNodeGrammar = this.grammar;
     this._forEachTreeWithRange(range, (tree, grammar) => {
       // [atom-revival] null-root-node-guard: skip until reparse lands
-      let node = tree.rootNode
-        ? tree.rootNode.descendantForIndex(startIndex, searchEndIndex)
-        : null;
+      // [atom-revival] missing-api-guard: descendantForIndex may be absent in
+      // rebuilt bindings; degrade to no syntax node for this range.
+      let node =
+        tree.rootNode && typeof tree.rootNode.descendantForIndex === 'function'
+          ? tree.rootNode.descendantForIndex(startIndex, searchEndIndex)
+          : null;
       while (node) {
         if (
           nodeContainsIndices(node, startIndex, endIndex) &&
@@ -571,7 +578,12 @@ class TreeSitterLanguageMode {
     }
 
     this._forEachTreeWithRange(new Range(point, point), tree => {
-      let node = tree.rootNode.descendantForPosition(point);
+      // [atom-revival] missing-api-guard: see getFoldableRangeContainingPoint.
+      let node =
+        tree.rootNode &&
+        typeof tree.rootNode.descendantForPosition === 'function'
+          ? tree.rootNode.descendantForPosition(point)
+          : null;
       while (node) {
         nodes.push(node);
         node = node.parent;

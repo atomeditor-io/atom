@@ -1,0 +1,242 @@
+'name': 'LaTeX'
+'scopeName': 'text.tex.latex'
+'fileTypes': [
+  'tex'
+  'sty'
+  'cls'
+]
+'patterns': [
+  {
+    'include': '#comments'
+  }
+  {
+    'include': '#includes'
+  }
+  {
+    'include': '#environment'
+  }
+  {
+    'include': '#math'
+  }
+  {
+    'include': '#declarations'
+  }
+  {
+    'include': '#commands'
+  }
+  {
+    'include': '#name'
+  }
+]
+'repository':
+  'comments':
+    'patterns': [
+      {
+        'match': '%.*'
+        'name': 'comment.line.percentage.tex'
+      }
+    ]
+  'includes':
+    'patterns': [
+      {
+        'begin': '\\\\(include\\{)([^}]*)(\\})'
+        'beginCaptures':
+          '1':
+            'name': 'keyword.control.include.tex'
+          '2':
+            'name': 'string.unquoted.filename.tex'
+          '3':
+            'name': 'keyword.control.include.tex'
+        'end': '\\G'
+      }
+      {
+        'match': '\\\\(input)\\s*\\{?([^}]*)\\}?'
+        'name': 'meta.include.tex'
+        'captures':
+          '1':
+            'name': 'keyword.control.include.tex'
+          '2':
+            'name': 'string.unquoted.filename.tex'
+      }
+    ]
+  'math':
+    'patterns': [
+      {
+        'begin': '\\$\\$'
+        'beginCaptures':
+          '0':
+            'name': 'punctuation.definition.math.begin.tex'
+        'end': '\\$\\$'
+        'endCaptures':
+          '0':
+            'name': 'punctuation.definition.math.end.tex'
+        'name': 'meta.math.display.tex'
+        'patterns': [
+          {
+            'include': '#math-content'
+          }
+        ]
+      }
+      {
+        'begin': '\\$'
+        'beginCaptures':
+          '0':
+            'name': 'punctuation.definition.math.begin.tex'
+        'end': '\\$'
+        'endCaptures':
+          '0':
+            'name': 'punctuation.definition.math.end.tex'
+        'name': 'meta.math.inline.tex'
+        'patterns': [
+          {
+            'include': '#math-content'
+          }
+        ]
+      }
+      {
+        'begin': '\\\\\\('
+        'beginCaptures':
+          '0':
+            'name': 'punctuation.definition.math.begin.tex'
+        'end': '\\\\\\)'
+        'endCaptures':
+          '0':
+            'name': 'punctuation.definition.math.end.tex'
+        'name': 'meta.math.inline.tex'
+        'patterns': [
+          {
+            'include': '#math-content'
+          }
+        ]
+      }
+      {
+        'begin': '\\\\\\['
+        'beginCaptures':
+          '0':
+            'name': 'punctuation.definition.math.begin.tex'
+        'end': '\\\\\\]'
+        'endCaptures':
+          '0':
+            'name': 'punctuation.definition.math.end.tex'
+        'name': 'meta.math.display.tex'
+        'patterns': [
+          {
+            'include': '#math-content'
+          }
+        ]
+      }
+    ]
+  'math-content':
+    'patterns': [
+      {
+        'match': '\\\\[a-zA-Z]+|\\\\[^a-zA-Z]'
+        'name': 'keyword.control.math.tex'
+      }
+      {
+        'match': '[0-9.]+'
+        'name': 'constant.numeric.math.tex'
+      }
+      {
+        'match': '[_^]'
+        'name': 'punctuation.definition.math.operator.tex'
+      }
+    ]
+  'declarations':
+    'patterns': [
+      {
+        'match': '\\\\(documentclass)\\s*(\\[[^\\]]*\\])?\\s*\\{([^}]*)\\}'
+        'name': 'meta.class.document.tex'
+        'captures':
+          '1':
+            'name': 'keyword.control.class.tex'
+          '2':
+            'name': 'string.option.tex'
+          '3':
+            'name': 'storage.type.cpp.tex'
+      }
+      {
+        'match': '\\\\(usepackage)\\s*(\\[[^\\]]*\\])?\\s*\\{([^}]*)\\}'
+        'name': 'meta.class.package.tex'
+        'captures':
+          '1':
+            'name': 'keyword.control.package.tex'
+          '2':
+            'name': 'string.option.tex'
+          '3':
+            'name': 'support.type.package.tex'
+      }
+      {
+        'match': '\\\\(title|author|date)\\s*(\\[[^\\]]*\\])?\\s*\\{[^}]*\\}'
+        'name': 'meta.class.document.tex'
+        'captures':
+          '1':
+            'name': 'keyword.control.title.tex'
+      }
+    ]
+  'commands':
+    'patterns': [
+      {
+        'match': '\\\\(textbf|textit|textsl|textup|texttt|textrm|textsf|emph|underline)\\s*\\{[^}]*\\}'
+        'name': 'markup.bold.italic.tex'
+        'captures':
+          '0':
+            'name': 'markup.bold.tex'
+      }
+      {
+        'match': '\\\\(tableofcontents|listoffigures|listoftables|clearpage|newpage)\\b'
+        'name': 'support.function.section.latex.tex'
+      }
+      {
+        'match': '\\\\(caption|label|ref|cite|citet|citep|eqref|pageref|vref)\\s*([^\\n]*)'
+        'name': 'meta.reference.tex'
+        'captures':
+          '1':
+            'name': 'support.function.reference.tex'
+          '2':
+            'name': 'string.other.reference.tex'
+      }
+      {
+        'match': '\\\\texttt\\s*\\{[^}]*\\}|\\\\url\\s*\\{[^}]*\\}|\\\\href\\s*\\{[^}]*\\}\\s*\\{[^}]*\\}'
+        'name': 'markup.underline.link.tex'
+      }
+    ]
+  'name':
+    'patterns': [
+      {
+        'match': '\\\\[a-zA-Z@]+'
+        'name': 'support.function.be.begin_except_document.tex'
+      }
+      {
+        'match': '\\\\\\\\|\\\\\\$|\\\\%|\\\\&|\\\\_|\\\\#|\\\\\\^|\\\\\\{|\\\\\\}|\\\\~'
+        'name': 'constant.character.escape.tex'
+      }
+    ]
+  'environment':
+    'patterns': [
+      {
+        'begin': '\\\\(begin)\\s*(\\{[a-zA-Z*]+\\})'
+        'beginCaptures':
+          '1':
+            'name': 'keyword.control.define.environment.tex'
+          '2':
+            'name': 'storage.type.environment.tex'
+        'end': '\\\\(end)\\s*(\\{[a-zA-Z*]+\\})'
+        'endCaptures':
+          '1':
+            'name': 'keyword.control.define.environment.tex'
+          '2':
+            'name': 'storage.type.environment.tex'
+        'name': 'meta.environment.tex'
+        'patterns': [
+          {
+            'include': '#comments'
+          }
+          {
+            'include': '#math'
+          }
+          {
+            'include': '#commands'
+          }
+        ]
+      }
+    ]

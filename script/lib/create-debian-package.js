@@ -169,14 +169,25 @@ module.exports = function(packagedAppPath) {
   );
 
   console.log(`Copying icon into "${debianPackageIconsDirPath}"`);
+  const atomPngPath = path.join(
+    packagedAppPath,
+    'resources',
+    'app.asar.unpacked',
+    'resources',
+    'atom.png'
+  );
+  const atomPngSourcePath = fs.existsSync(atomPngPath)
+    ? atomPngPath
+    : path.join(
+        CONFIG.repositoryRootPath,
+        'resources',
+        'app-icons',
+        CONFIG.channel,
+        'png',
+        '256.png'
+      );
   fs.copySync(
-    path.join(
-      packagedAppPath,
-      'resources',
-      'app.asar.unpacked',
-      'resources',
-      'atom.png'
-    ),
+    atomPngSourcePath,
     path.join(debianPackageIconsDirPath, `${atomExecutableName}.png`)
   );
 

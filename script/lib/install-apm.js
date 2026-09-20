@@ -29,18 +29,35 @@ module.exports = function(ci) {
   );
   const fs = require('fs');
   const path = require('path');
-  const bundledGyp = path.join(
-    CONFIG.apmRootPath,
-    'node_modules/atom-package-manager/node_modules/npm/node_modules/node-gyp'
-  );
   const patchedGyp = path.join(__dirname, '..', 'patches', 'node-gyp');
   if (fs.existsSync(patchedGyp)) {
     // fs-level copy (not cp -a): dereference symlinks so the swap also works
     // on Windows, where creating symlinks requires special privileges.
     const fsExtra = require('fs-extra');
-    fsExtra.removeSync(bundledGyp);
-    fsExtra.copySync(patchedGyp, bundledGyp, { dereference: true });
-    console.log('Patched apm node-gyp to 9.4.1');
+    const swapGyp = target => {
+      fsExtra.removeSync(target);
+      fsExtra.copySync(patchedGyp, target, { dereference: true });
+      console.log(`Patched node-gyp to 9.4.1 in ${target}`);
+    };
+    // apm's bundled npm uses this node-gyp when apm later installs packages.
+    swapGyp(
+      path.join(
+        CONFIG.apmRootPath,
+        'node_modules/atom-package-manager/node_modules/npm/node_modules/node-gyp'
+      )
+    );
+    // npm 4 runs `rebuild` scripts with its OWN bundled node-gyp (which cannot
+    // run under Python >= 3.11), so the build npm's copy must be swapped too.
+    swapGyp(
+      path.join(
+        CONFIG.repositoryRootPath,
+        'script',
+        'node_modules',
+        'npm',
+        'node_modules',
+        'node-gyp'
+      )
+    );
   }
   patchApmSearchForStaticRegistry();
   console.log('Rebuilding apm native modules');

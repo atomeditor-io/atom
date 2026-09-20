@@ -1,0 +1,47 @@
+'name': 'Gitignore'
+'scopeName': 'source.gitignore'
+'fileTypes': [
+  'gitignore'
+  'npmignore'
+  'dockerignore'
+  'hgignore'
+  'yarnignore'
+  'nodemonignore'
+]
+'patterns': [
+  {
+    'match': '^\\s*#.*$'
+    'name': 'comment.line.number-sign.gitignore'
+  }
+  {
+    'match': '^\\s*!'
+    'name': 'keyword.operator.negation.gitignore'
+    'captures':
+      '0':
+        'name': 'keyword.operator.negation.gitignore'
+  }
+  {
+    'match': '^\\s*(/)?.*(/)\\s*$'
+    'name': 'markup.quot.unstaged.gitignore'
+    'captures':
+      '1':
+        'name': 'punctuation.definition.root.gitignore'
+      '2':
+        'name': 'punctuation.definition.dir.gitignore'
+  }
+  {
+    'match': '(^\\s*)\\*\\*'
+    'name': 'markup.quote.gitignore'
+    'captures':
+      '0':
+        'name': 'string.unquoted.gitignore'
+  }
+  {
+    'match': '^\\s*\\**([^\\s#!][^#!]*?)\\*+'
+    'name': 'string.unquoted.gitignore'
+  }
+  {
+    'match': '^\\s*[^#!\\s][^#!\\r\\n]*$'
+    'name': 'string.unquoted.gitignore'
+  }
+]

@@ -1,0 +1,160 @@
+'name': 'SLS (SaltStack)'
+'scopeName': 'source.sls'
+'fileTypes': [
+  'sls'
+  'jinja'
+  'j2'
+  'imj'
+]
+'patterns': [
+  {
+    'begin': '{#'
+    'beginCaptures':
+      '0':
+        'name': 'punctuation.definition.comment.begin.sls'
+    'end': '#}'
+    'endCaptures':
+      '0':
+        'name': 'punctuation.definition.comment.end.sls'
+    'name': 'comment.block.sls'
+  }
+  {
+    'match': '\\#.*$'
+    'name': 'comment.line.number-sign.sls'
+  }
+  {
+    'begin': '\\{\\{'
+    'beginCaptures':
+      '0':
+        'name': 'punctuation.section.jinja.begin.sls'
+    'end': '\\}\\}'
+    'endCaptures':
+      '0':
+        'name': 'punctuation.section.jinja.end.sls'
+    'name': 'source.jinja'
+    'patterns': [
+      {
+        'include': '#jinja-content'
+      }
+    ]
+  }
+  {
+    'begin': '\\{%-?'
+    'beginCaptures':
+      '0':
+        'name': 'punctuation.section.jinja.begin.sls'
+    'end': '-?%}'
+    'endCaptures':
+      '0':
+        'name': 'punctuation.section.jinja.end.sls'
+    'name': 'source.jinja'
+    'patterns': [
+      {
+        'include': '#jinja-content'
+      }
+    ]
+  }
+  {
+    'matches': '^\\s*([A-Za-z0-9_.-]+)(:)'
+    'name': 'meta.mapping.key.sls'
+    'captures':
+      '1':
+        'name': 'constant.other.key.sls'
+      '2':
+        'name': 'punctuation.separator.key.sls'
+  }
+  {
+    'match': '\\b(a|an|the)\\b'
+    'name': 'keyword.language.sls'
+  }
+  {
+    'match': '\\b(jinja|yaml|salt|grains|pillar|opts|env|opt|host|fqdn|os|config|defaults|role|roles|minion|master|slave|node)\\b'
+    'name': 'keyword.control.sls'
+  }
+  {
+    'match': '\\b(cmd|file|pkg|service|user|group|cron|systemd|service|mysql|postgres|network|virtualenv|pip|archive|git|git.latest|git.cloned|file.managed|file.recurse|file.directory|file.symlink|cmd.run|cmd.script|service.running|service.dead|pkg.installed|pkg.latest|user.present|group.present|user.absent)\\b'
+    'name': 'support.function.state.sls'
+  }
+  {
+    'match': '\\b(require|watch|include|extend|names|source|name|mode|owner|group|user|shell|path|target|unless|onlyif)\\b'
+    'name': 'keyword.control.requisite.sls'
+  }
+  {
+    'begin': '"'
+    'beginCaptures':
+      '0':
+        'name': 'punctuation.definition.string.begin.sls'
+    'end': '"'
+    'endCaptures':
+      '0':
+        'name': 'punctuation.definition.string.end.sls'
+    'name': 'string.quoted.double.sls'
+  }
+  {
+    'begin': "'"
+    'beginCaptures':
+      '0':
+        'name': 'punctuation.definition.string.begin.sls'
+    'end': "'"
+    'endCaptures':
+      '0':
+        'name': 'punctuation.definition.string.end.sls'
+    'name': 'string.quoted.single.sls'
+  }
+  {
+    'match': '\\b(\\d+(\\.\\d+)?)\\b'
+    'name': 'constant.numeric.sls'
+  }
+  {
+    'match': '([=&|!?><^~*%+:])|-\\s*'
+    'name': 'keyword.operator.sls'
+  }
+]
+'repository':
+  'jinja-content':
+    'patterns': [
+      {
+        'include': '#jinja-tags'
+      }
+      {
+        'include': '#jinja-filters'
+      }
+      {
+        'include': '#jinja-strings'
+      }
+      {
+        'include': '#jinja-keyword'
+      }
+    ]
+  'jinja-tags':
+    'patterns': [
+      {
+        'match': '\\b(if|else|elif|endif|for|endfor|block|endblock|macro|endmacro|set|call|endcall|filter|endfilter|extends|import|include|from|with|without|in|is|not|and|or|true|false|none)\\b'
+        'name': 'keyword.control.jinja'
+      }
+    ]
+  'jinja-filters':
+    'patterns': [
+      {
+        'match': '\\|\\s*[a-zA-Z_][a-zA-Z0-9_]*'
+        'name': 'support.function.filter.jinja'
+      }
+    ]
+  'jinja-strings':
+    'patterns': [
+      {
+        'match': "'(?:\\\\.|[^\\\\'])*'|\"(?:\\\\.|[^\\\\\"])*\""
+        'name': 'string.quoted.jinja'
+      }
+      {
+        'match': '\\b(\\d+(\\.\\d+)?)\\b'
+        'name': 'constant.numeric.jinja'
+      }
+    ]
+  'jinja-keyword':
+    'patterns': [
+      {
+        'match': '\\b(capture|static|do|recursive|scoped|dummy)\\b'
+        'name': 'keyword.control.jinja'
+      }
+    ]

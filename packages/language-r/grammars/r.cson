@@ -1,0 +1,48 @@
+'name': 'R'
+'scopeName': 'source.r'
+'fileTypes': [
+  'r'
+  'R'
+  'Rprofile'
+]
+'firstLineMatch': '^#!.*\\br(script)\\b'
+'patterns': [
+  {
+    'match': '#.*$'
+    'name': 'comment.line.number-sign.r'
+  }
+  {
+    'match': "'(?:\\\\.|[^\\\\'])*'|\"(?:\\\\.|[^\\\\\"])*\""
+    'name': 'string.quoted.double.r'
+  }
+  {
+    'match': '\\b(0x[0-9a-fA-F]+|\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?i?|\\.\\d+(?:[eE][+-]?\\d+)?i?|\\d+(?:[eE][+-]?\\d+)i?)\\b'
+    'name': 'constant.numeric.r'
+  }
+  {
+    'match': '\\b(in|as|is|if|else|for|while|repeat|function|return|break|next)\\b'
+    'name': 'keyword.control.r'
+  }
+  {
+    'match': '\\b(TRUE|FALSE|NULL|NA|NA_integer_|NA_real_|NA_character_|NA_complex_|NaN|Inf|-Inf)\\b'
+    'name': 'constant.language.r'
+  }
+  {
+    'match': '\\b(c|cat|print|paste|paste0|sprintf|length|sum|mean|median|min|max|range|sd|var|sqrt|abs|log|log10|exp|round|floor|ceiling|unique|sort|rev|rep|seq|matrix|data.frame|list|as.list|as.character|as.numeric|as.integer|as.logical|typeof|class|dim|nrow|ncol|names|rownames|colnames|subset|merge|rbind|cbind|apply|lapply|sapply|vapply|tapply|mapply|plot|lines|points|abline|hist|boxplot|barplot|qqnorm|qqline|ggplot|aes|geom_point|geom_line|geom_bar|geom_histogram|lm|glm|summary|anova|t.test|chisq.test|cor|read.table|read.csv|write.csv|readLines|writeLines|source|library|require|install.packages)\\('
+    'name': 'support.function.misc.r'
+    'captures':
+      '0':
+        'name': 'support.function.misc.r'
+  }
+  {
+    'match': '\\b[A-Za-z][A-Za-z0-9._]*\\s*(\\()'
+    'captures':
+      '1':
+        'name': 'punctuation.definition.args.r'
+    'name': 'meta.function-call.r'
+  }
+  {
+    'match': '(%[a-zA-Z.]+%|<-|<<-|=|==|!=|<=|>=|&&|\\|\\||\\+|\\-|\\*|/|\\^|:|\\.|\\$|\\[|\\]|\\{|\\}|\\(|\\)|,|;|~|>|<|!|&|\\|)'
+    'name': 'keyword.operator.r'
+  }
+]

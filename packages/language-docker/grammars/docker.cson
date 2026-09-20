@@ -1,0 +1,105 @@
+'name': 'Dockerfile'
+'scopeName': 'source.dockerfile'
+'fileTypes': [
+  'Dockerfile'
+  'Containerfile'
+  'dockerfile'
+]
+'patterns': [
+  {
+    'match': '^\\s*#.*$'
+    'name': 'comment.line.number-sign.dockerfile'
+  }
+  {
+    'begin': '^\\s*(#\\s*escape=|escape=)'
+    'beginCaptures':
+      '1':
+        'name': 'keyword.control.escape.dockerfile'
+    'end': '\\G'
+    'patterns': [
+      {
+        'match': '\\\\.'
+        'name': 'constant.character.escape.dockerfile'
+      }
+    ]
+  }
+  {
+    'match': '^\\s*(?i:@?escape|JSON)\\b'
+    'name': 'keyword.control.escape.dockerfile'
+  }
+  {
+    'match': '^\\s*(?i:FROM)\\s+(.*)$'
+    'name': 'meta.preprocessor.dockerfile'
+    'captures':
+      '1':
+        'name': 'entity.name.function.dockerfile'
+  }
+  {
+    'match': '\\b(?i:(ARG|ENV))\\b'
+    'name': 'keyword.control.arg.dockerfile'
+  }
+  {
+    'match': '\\b(?i:(ADD|COPY))\\b'
+    'name': 'keyword.other.copy.dockerfile'
+  }
+  {
+    'match': '\\b(?i:(WORKDIR))\\b'
+    'name': 'keyword.control.workdir.dockerfile'
+  }
+  {
+    'match': '\\b(?i:(RUN))\\b'
+    'name': 'keyword.control.run.dockerfile'
+  }
+  {
+    'match': '\\b(?i:(CMD|ENTRYPOINT))\\b'
+    'name': 'keyword.control.entrypoint.dockerfile'
+  }
+  {
+    'match': '\\b(?i:(EXPOSE|VOLUME|USER|LABEL|MAINTAINER|HEALTHCHECK|SHELL|STOPSIGNAL|ONBUILD))\\b'
+    'name': 'keyword.control.other.dockerfile'
+  }
+  {
+    'match': '^\\s*(?i:(ARG|ENV))\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(=)?\\s*(.*)$'
+    'captures':
+      '1':
+        'name': 'keyword.control.arg.dockerfile'
+      '2':
+        'name': 'variable.other.dockerfile'
+  }
+  {
+    'match': '\\$\\{[A-Za-z_][A-Za-z0-9_]*([:-](([-+])[^}]*))?\\}'
+    'name': 'variable.other.dockerfile'
+    'captures':
+      '0':
+        'name': 'variable.other.dockerfile'
+  }
+  {
+    'match': '\\$[A-Za-z_][A-Za-z0-9_]*'
+    'name': 'variable.other.dockerfile'
+  }
+  {
+    'match': '--?+[a-zA-Z][a-zA-Z0-9_-]*'
+    'name': 'constant.language.dockerfile'
+  }
+  {
+    'begin': '"'
+    'beginCaptures':
+      '0':
+        'name': 'punctuation.definition.string.begin.dockerfile'
+    'end': '"'
+    'endCaptures':
+      '0':
+        'name': 'punctuation.definition.string.end.dockerfile'
+    'name': 'string.quoted.double.dockerfile'
+    'patterns': [
+      {
+        'match': '\\\\.'
+        'name': 'constant.character.escape.dockerfile'
+      }
+    ]
+  }
+  {
+    'match': '[\\s,;()]'
+    'name': 'keyword.operator.dockerfile'
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "name": "language-ini",
+  "version": "1.17.0",
+  "description": "Syntax highlighting for INI configuration files and systemd unit files.",
+  "license": "MIT",
+  "engines": {
+    "atom": "*"
+  }
+}

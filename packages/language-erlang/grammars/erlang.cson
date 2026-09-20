@@ -1,0 +1,71 @@
+'name': 'Erlang'
+'scopeName': 'source.erlang'
+'fileTypes': [
+  'erl'
+  'hrl'
+  'escript'
+]
+'firstLineMatch': '^#!.*\\bescript\\b'
+'patterns': [
+  {
+    'match': '%.*$'
+    'name': 'comment.line.percentage.erlang'
+  }
+  {
+    'match': '"[^"\\n]*"'
+    'name': 'string.quoted.double.erlang'
+    'patterns': [
+      {
+        'match': '\\\\.'
+        'name': 'constant.character.escape.erlang'
+      }
+    ]
+  }
+  {
+    'begin': "'"
+    'beginCaptures':
+      '0':
+        'name': 'punctuation.definition.string.begin.erlang'
+    'end': "'"
+    'endCaptures':
+      '0':
+        'name': 'punctuation.definition.string.end.erlang'
+    'name': 'string.quoted.single.erlang'
+  }
+  {
+    'match': '\\b(\\d+([._\\d])*(#[0-9a-zA-Z]+)|\\d+(\\.\\d+)?([eE][+-]?\\d+)?)\\b'
+    'name': 'constant.numeric.erlang'
+  }
+  {
+    'match': '\\b(after|begin|case|catch|cond|end|fun|if|let|of|query|receive|try|when|and|andalso|band|bnot|bor|bsl|bsr|bxor|div|not|or|orelse|rem|xor)\\b'
+    'name': 'keyword.control.erlang'
+  }
+  {
+    'match': '\\b(atom|float|integer|binary|fun|pid|port|ref|tuple|list|bitstring|map|module|export|import|record|type|spec|callback|behaviour|define|include|include_lib|ifdef|ifndef|else)\\b'
+    'name': 'keyword.type.erlang'
+  }
+  {
+    'match': '<<\\s*[A-Za-z_][A-Za-z0-9_]*//\\s*[a-zA-Z_][a-zA-Z0-9_-]*'
+    'name': 'support.type.binary.erlang'
+  }
+  {
+    'match': '^\\s*[a-z_][a-zA-Z0-9_]*\\s*\\('
+    'name': 'entity.name.function.erlang'
+  }
+  {
+    'match': '[a-z_][a-zA-Z0-9_@]*'
+    'name': 'variable.other.erlang'
+  }
+  {
+    'match': '[A-Z_][a-zA-Z0-9_@]*'
+    'name': 'variable.other.constant.erlang'
+  }
+  {
+    'match': '([=-]>|->|<->|:=|\\+=|-\\+|--|\\*\\*|==|=:=|=/=|\\/=|<|>|=|\\+|\\-|\\*|/|!)'
+    'name': 'keyword.operator.erlang'
+  }
+  {
+    'match': '[\\\\.,;:()\\[\\]{}|?#&]'
+    'name': 'punctuation.separator.erlang'
+  }
+]
