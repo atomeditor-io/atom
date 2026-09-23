@@ -133,6 +133,47 @@ const decryptOptions = (optionsMessage, secret) => {
   return JSON.parse(message);
 };
 
+const playSystemBell = () => {
+  // Electron's native `shell.beep()` cannot be used from JS in this build:
+  // from the renderer it pumps the GTK event loop inside the renderer
+  // process and crashes it on Linux, and from the main process its gin
+  // callback dispatch intermittently resolves a null invoker
+  // (SIGSEGV, PC=0 in atom+0x2a29520 — see crashpad dumps). Instead, play
+  // the system bell the same way Electron's native implementation does,
+  // via child processes, and fall back through the available players.
+  const { spawn } = require('child_process');
+
+  const candidatesByPlatform = {
+    linux: [
+      // Mirrors Electron's libcanberra ca_context_play(..., "bell", ...).
+      { command: 'canberra-gtk-play', args: ['-i', 'bell'] },
+      { command: 'paplay', args: ['/usr/share/sounds/freedesktop/stereo/bell.oga'] },
+      { command: 'pw-play', args: ['/usr/share/sounds/freedesktop/stereo/bell.oga'] }
+    ],
+    win32: [
+      // Mirrors Electron's Windows Beep() -> MessageBeep().
+      { command: 'rundll32.exe', args: ['user32.dll,MessageBeep'] }
+    ],
+    darwin: [
+      // Mirrors NSBeep()'s default alert sound.
+      { command: 'afplay', args: ['/System/Library/Sounds/Funk.aiff'] }
+    ]
+  };
+
+  const candidates = candidatesByPlatform[process.platform] || [];
+  const tryNext = index => {
+    if (index >= candidates.length) return;
+    const { command, args } = candidates[index];
+    const child = spawn(command, args, { stdio: 'ignore' });
+    child.on('error', () => tryNext(index + 1));
+  };
+  tryNext(0);
+};
+
+ipcMain.handle('beep', () => {
+  playSystemBell();
+});
+
 ipcMain.handle('isDefaultProtocolClient', (_, { protocol, path, args }) => {
   return app.isDefaultProtocolClient(protocol, path, args);
 });

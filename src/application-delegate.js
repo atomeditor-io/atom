@@ -283,7 +283,11 @@ module.exports = class ApplicationDelegate {
   }
 
   playBeepSound() {
-    return shell.beep();
+    // Delegate to the main process via IPC. Calling `shell.beep()` directly
+    // from the renderer executes the native Beep() in the renderer process,
+    // which crashes it on Linux when the GTK event loop is pumped inside V8's
+    // PKU-protected code-space write path.
+    return ipcRenderer.invoke('beep');
   }
 
   onDidOpenLocations(callback) {
