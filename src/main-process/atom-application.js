@@ -300,6 +300,20 @@ module.exports = class AtomApplication extends EventEmitter {
         this.config.onDidChange('core.colorProfile', () =>
           this.promptForRestart()
         );
+        if (
+          process.platform === 'linux' &&
+          !this.safeMode &&
+          !options.test &&
+          !options.benchmark &&
+          !options.benchmarkTest
+        ) {
+          const SystemThemeWatcher = require('./system-theme-watcher');
+          this.systemThemeWatcher = new SystemThemeWatcher({
+            config: this.config
+          });
+          this.systemThemeWatcher.start();
+          this.disposable.add(this.systemThemeWatcher);
+        }
       });
       await this.configFilePromise;
     }
@@ -584,7 +598,7 @@ module.exports = class AtomApplication extends EventEmitter {
     });
 
     this.on('application:open-documentation', () =>
-      shell.openExternal('https://flight-manual.atom.io')
+      shell.openExternal('https://flight-manual.atomeditor.io')
     );
     this.on('application:open-discussions', () =>
       shell.openExternal('https://github.com/atomeditor-io/atom/discussions')

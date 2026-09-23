@@ -125,15 +125,14 @@ let UpdateManager = class UpdateManager {
   getReleaseNotesURLForVersion(appVersion) {
     // Dev versions will not have a releases page
     if (appVersion.indexOf('dev') > -1) {
-      return 'https://atom.io/releases';
+      return 'https://github.com/atomeditor-io/atom/releases';
     }
 
     if (!appVersion.startsWith('v')) {
       appVersion = `v${appVersion}`;
     }
 
-    const releaseRepo =
-      appVersion.indexOf('nightly') > -1 ? 'atom-nightly-releases' : 'atom';
+    const releaseRepo = 'atom';
     return `https://github.com/atomeditor-io/${releaseRepo}/releases/tag/${appVersion}`;
   }
 };
