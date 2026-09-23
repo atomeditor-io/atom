@@ -107,6 +107,58 @@ const configSchema = {
         description:
           'Names of UI and syntax themes which will be used when Atom starts.'
       },
+      themeMode: {
+        title: 'Theme Mode',
+        type: 'string',
+        default: 'manual',
+        enum: [
+          {
+            value: 'manual',
+            description: 'Keep the UI and syntax themes selected below'
+          },
+          {
+            value: 'system',
+            description:
+              "Follow the system's dark or light appearance, switching automatically"
+          },
+          {
+            value: 'dark',
+            description: 'Always use the dark UI and syntax themes'
+          },
+          {
+            value: 'light',
+            description: 'Always use the light UI and syntax themes'
+          }
+        ],
+        description:
+          'Controls how the UI and syntax themes are selected. When not set to *Manual*, the dark or light theme pair below is applied automatically and manual theme changes are overridden on the next switch.'
+      },
+      uiThemeDark: {
+        title: 'Dark UI Theme',
+        type: 'string',
+        default: 'one-dark-ui',
+        description: 'UI theme used by the Dark and System (dark) theme modes.'
+      },
+      syntaxThemeDark: {
+        title: 'Dark Syntax Theme',
+        type: 'string',
+        default: 'one-dark-syntax',
+        description:
+          'Syntax theme used by the Dark and System (dark) theme modes.'
+      },
+      uiThemeLight: {
+        title: 'Light UI Theme',
+        type: 'string',
+        default: 'one-light-ui',
+        description: 'UI theme used by the Light and System (light) theme modes.'
+      },
+      syntaxThemeLight: {
+        title: 'Light Syntax Theme',
+        type: 'string',
+        default: 'one-light-syntax',
+        description:
+          'Syntax theme used by the Light and System (light) theme modes.'
+      },
       audioBeep: {
         type: 'boolean',
         default: true,

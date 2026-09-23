@@ -28,6 +28,7 @@ const ReopenProjectMenuManager = require('./reopen-project-menu-manager');
 const StyleManager = require('./style-manager');
 const PackageManager = require('./package-manager');
 const ThemeManager = require('./theme-manager');
+const AutoThemeManager = require('./auto-theme-manager');
 const MenuManager = require('./menu-manager');
 const ContextMenuManager = require('./context-menu-manager');
 const CommandInstaller = require('./command-installer');
@@ -878,6 +879,12 @@ class AtomEnvironment {
   // Call this method when establishing a real application window.
   async startEditorWindow() {
     StartupTime.addMarker('window:environment:start-editor-window:start');
+
+    this.autoThemeManager = new AutoThemeManager({
+      config: this.config,
+      window: this.window
+    });
+    this.disposables.add(this.autoThemeManager);
 
     if (this.getLoadSettings().clearWindowState) {
       await this.stateStore.clear();
