@@ -441,8 +441,8 @@ const configSchema = {
       },
       useTreeSitterParsers: {
         type: 'boolean',
-        default: false,
-        description: 'Use Tree-sitter parsers for supported languages.<br>Disabled by default in this build: the bundled legacy tree-sitter bindings are not ABI-compatible with Electron 39 and will fail at runtime. TextMate grammars cover all bundled languages.'
+        default: true,
+        description: 'Use Tree-sitter parsers for supported languages.'
       },
       colorProfile: {
         description:
