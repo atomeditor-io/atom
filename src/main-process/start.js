@@ -155,9 +155,9 @@ module.exports = function start(resourcePath, devResourcePath, startTime) {
     const secondArgs = ArgParser(secondArgv.slice(1));
     const secondPathsToOpen = secondArgs.pathsToOpen || [];
     const secondUrlsToOpen = secondArgs.urlsToOpen || [];
-    const secondNewWindow = secondArgs['new-window'];
-    const secondDev = secondArgs['dev'];
-    const secondSafe = secondArgs['safe'];
+    const secondNewWindow = secondArgs.newWindow;
+    const secondDev = secondArgs.devMode;
+    const secondSafe = secondArgs.safeMode;
 
     if (
       secondPathsToOpen.length === 0 &&
@@ -173,7 +173,7 @@ module.exports = function start(resourcePath, devResourcePath, startTime) {
       newWindow: secondNewWindow,
       devMode: secondDev,
       safeMode: secondSafe,
-      workingDirectory: secondWorkingDirectory
+      executedFrom: secondArgs.executedFrom || secondWorkingDirectory
     };
 
     if (global.atomApplication) {

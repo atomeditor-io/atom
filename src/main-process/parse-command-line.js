@@ -133,6 +133,21 @@ module.exports = function parseCommandLine(processArgs) {
       'Enable low-level logging messages from Electron.'
     );
   options.boolean('uri-handler');
+  // atomeditor.io fork: options passed by the launcher/Electron that take a
+  // value but aren't otherwise declared. Without these, yargs'
+  // unknown-options-as-args (set below) would push them into the positional
+  // list and we'd lose executedFrom / wait-pid / PATH.
+  options.string('executed-from');
+  options.number('pid');
+  options.string('path-environment');
+  // [atomeditor.io fork] Electron injects value-less switches (e.g.
+  // --allow-file-access-from-files, --enable-experimental-web-platform-features)
+  // into the argv it reports for a second instance. By default yargs treats an
+  // unknown switch as a string option and consumes the FOLLOWING token as its
+  // value, so `atom -n /repo` (what GitHub Desktop runs) parsed to zero paths
+  // and the target repo was silently dropped. Treat unknown switches as
+  // positional args instead; the path-collection loop below skips them.
+  options.parserConfiguration({ 'unknown-options-as-args': true });
   options
     .version(
       dedent`Atom    : ${version}
@@ -196,6 +211,11 @@ module.exports = function parseCommandLine(processArgs) {
     if (typeof path !== 'string') {
       // Sometimes non-strings (such as numbers or boolean true) get into args._
       // In the next block, .startsWith() only works on strings. So, skip non-string arguments.
+      continue;
+    }
+    // [atomeditor.io fork] With unknown-options-as-args, unknown switches land
+    // in args._ as-is. They are not paths, so skip them.
+    if (path.startsWith('-')) {
       continue;
     }
     if (path.startsWith('atom://')) {

@@ -1964,7 +1964,7 @@ module.exports = class AtomApplication extends EventEmitter {
     }
 
     const normalizedPath = path.normalize(
-      path.resolve(executedFrom, fs.normalize(result.pathToOpen))
+      path.resolve(executedFrom || process.cwd(), fs.normalize(result.pathToOpen))
     );
     if (!url.parse(pathToOpen).protocol) {
       result.pathToOpen = normalizedPath;
