@@ -4,7 +4,7 @@ const childProcess = require('child_process');
 
 const CONFIG = require('../config');
 
-// Debian 13 (trixie) compatibility, tmiland-lab fork:
+// Debian 13 (trixie) compatibility, atomeditor-io fork:
 // - apm's bundled node-gyp (5.1.0) cannot run under modern Python; install
 //   apm deps without scripts, swap in node-gyp 9.4.1 (script/patches), then
 //   rebuild the native modules with it.

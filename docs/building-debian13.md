@@ -16,7 +16,7 @@ different ABI breaks at require-time).
 
 ## Build
 
-    git clone https://github.com/tmiland-lab/atom && cd atom
+    git clone https://github.com/atomeditor-io/atom && cd atom
     git checkout v1.63.1-debian13.1   # or the debian13-compat branch
     export PATH=/path/to/node12/bin:$PATH
     export ATOM_ELECTRON_URL=https://electronjs.org/headers
@@ -41,7 +41,7 @@ Result: `out/atom-amd64.deb` and a runnable `out/atom-1.63.1-amd64/`.
 
 apm installs packages straight from GitHub — no registry involved:
 
-    apm install tmiland-lab/language-c
+    apm install atomeditor-io/language-c
 
 Pure-JS packages work with any apm. Native packages additionally need the
 recipe above (headers URL + `GYP_DEFINES` + Python 3.11 in PATH); this

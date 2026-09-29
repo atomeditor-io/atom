@@ -6,7 +6,7 @@ module.exports = function(packagePath) {
   const nodeModulesBackupPath = path.join(packagePath, 'node_modules.bak');
 
   if (fs.existsSync(nodeModulesBackupPath)) {
-    // tmiland-lab fork: a leftover backup means a previous run died between
+    // atomeditor-io fork: a leftover backup means a previous run died between
     // backup and restore; it is stale by definition — remove and continue.
     console.log(
       'Removing stale backup ' + nodeModulesBackupPath

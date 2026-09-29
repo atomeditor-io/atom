@@ -7,7 +7,7 @@ const { transpileGithubEsm } = require('./transpile-github-esm');
 
 const CONFIG = require('../config');
 
-// Debian 13 (gcc 14) compatibility, tmiland-lab fork.
+// Debian 13 (gcc 14) compatibility, atomeditor-io fork.
 // Old native sources stopped compiling against modern gcc; apply small,
 // idempotent source fixes and pre-seed per-package dependency trees with the
 // already-built native modules so their apm installs skip recompiling.

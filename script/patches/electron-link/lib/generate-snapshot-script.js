@@ -58,7 +58,7 @@ module.exports = async function (cache, options) {
             const after = source.slice(e.index, e.index + 100)
             console.error(`\n${before}==>${after}\n`)
           }
-          // tmiland-lab fork: leave untransformable modules as runtime
+          // atomeditor-io fork: leave untransformable modules as runtime
           // requires instead of failing the whole snapshot generation.
           continue
         }

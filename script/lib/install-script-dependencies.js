@@ -15,7 +15,7 @@ module.exports = function(ci) {
     { env: process.env, cwd: CONFIG.scriptRootPath }
   );
 
-  // tmiland-lab fork: overlay vendored electron-link patches (V8 9 snapshot walker)
+  // atomeditor-io fork: overlay vendored electron-link patches (V8 9 snapshot walker)
   // Must run AFTER npm install creates script/node_modules/electron-link/.
   const fs = require('fs');
   const path = require('path');

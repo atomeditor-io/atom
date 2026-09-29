@@ -49,7 +49,7 @@ module.exports = class FileRequireTransform {
       visitCallExpression: function (astPath) {
         if (isStaticRequire(astPath)) {
           let moduleName = astPath.node.arguments[0].value
-          // tmiland-lab fork: Node 14.18+/16+ packages may require 'node:'-
+          // atomeditor-io fork: Node 14.18+/16+ packages may require 'node:'-
           // prefixed core modules, which pre-node16 Electron runtimes and
           // this walker cannot resolve. Normalize to the bare builtin name.
           if (moduleName.startsWith && moduleName.startsWith('node:')) {

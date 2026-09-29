@@ -6,7 +6,7 @@ const {
   nativeImage
 } = require('electron');
 const electronRemote = require('@electron/remote/main');
-// Rung 2 (tmiland-lab fork): Electron 14 removed the built-in remote module;
+// Rung 2 (atomeditor-io fork): Electron 14 removed the built-in remote module;
 // @electron/remote provides it. initialize() once, then enable() per window.
 electronRemote.initialize();
 // Windows created later (github package worker windows, dev tools, ...) need
@@ -64,13 +64,13 @@ module.exports = class AtomWindow extends EventEmitter {
         // (Ref: https://github.com/atom/atom/pull/12696#issuecomment-290496960)
         disableBlinkFeatures: 'Auxclick',
         nodeIntegration: true,
-        // Rung 2 (tmiland-lab fork): Electron 12+ defaults contextIsolation to
+        // Rung 2 (atomeditor-io fork): Electron 12+ defaults contextIsolation to
         // true, which disables nodeIntegration and the remote bridge in the
         // page. Pulsar sets this explicitly; Atom 1.63 needs whole-page node.
         contextIsolation: false,
         webviewTag: true,
 
-        // Rung 2 (tmiland-lab fork): Electron 14 removed enableRemoteModule;
+        // Rung 2 (atomeditor-io fork): Electron 14 removed enableRemoteModule;
         // @electron/remote/main.enable() below replaces it.
         // node support in threads
         nodeIntegrationInWorker: true
@@ -91,7 +91,7 @@ module.exports = class AtomWindow extends EventEmitter {
       settings.browserWindowConstructor || BrowserWindow;
     this.browserWindow = new BrowserWindowConstructor(options);
 
-    // Rung 2 (tmiland-lab fork): per-window enablement for @electron/remote.
+    // Rung 2 (atomeditor-io fork): per-window enablement for @electron/remote.
     electronRemote.enable(this.browserWindow.webContents);
 
     Object.defineProperty(this.browserWindow, 'loadSettingsJSON', {

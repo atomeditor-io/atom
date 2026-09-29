@@ -4,7 +4,7 @@ const childProcess = require('child_process');
 
 const CONFIG = require('../config');
 
-// Debian 13 / Electron-modern chase (tmiland-lab fork): extraInstallEnv lets
+// Debian 13 / Electron-modern chase (atomeditor-io fork): extraInstallEnv lets
 // callers add npm_config_* overrides for a specific install. The transpile
 // step uses npm_config_ignore_scripts=true because bundled packages' devDep
 // chains (e.g. github -> electron-link -> leveldown@5.6.0 -> nan@2.14) carry

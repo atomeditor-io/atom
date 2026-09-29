@@ -81,7 +81,7 @@ module.exports = function(packagedAppPath) {
     cachePath: path.join(CONFIG.atomHomeDirPath, 'snapshot-cache'),
     auxiliaryData: CONFIG.snapshotAuxiliaryData,
     shouldExcludeModule: ({ requiringModulePath, requiredModulePath }) => {
-      // tmiland-lab fork: bare module names reaching this callback are
+      // atomeditor-io fork: bare module names reaching this callback are
       // requires the walker could not resolve to a file — modern Node core
       // modules/subpaths (util/types, diagnostics_channel, node:test, …)
       // unknown to the build-era builtinModules list. They are never files

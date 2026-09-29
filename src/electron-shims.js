@@ -99,7 +99,7 @@ function oldRemoteRequire(remote) {
   };
 }
 
-// Rung 2 (tmiland-lab fork): Electron 14 removed the built-in `remote` module.
+// Rung 2 (atomeditor-io fork): Electron 14 removed the built-in `remote` module.
 // Back `electron.remote` with `@electron/remote` so legacy consumers keep
 // working (Pulsar-style shim).
 if (!electron._remotePatched) {
