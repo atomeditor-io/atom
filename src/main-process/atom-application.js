@@ -1,6 +1,7 @@
 const AtomWindow = require('./atom-window');
 const ApplicationMenu = require('./application-menu');
 const AtomProtocolHandler = require('./atom-protocol-handler');
+const LinuxUriHandler = require('./linux-uri-handler');
 const AutoUpdateManager = require('./auto-update-manager');
 const StorageFolder = require('../storage-folder');
 const Config = require('../config');
@@ -147,8 +148,14 @@ const playSystemBell = () => {
     linux: [
       // Mirrors Electron's libcanberra ca_context_play(..., "bell", ...).
       { command: 'canberra-gtk-play', args: ['-i', 'bell'] },
-      { command: 'paplay', args: ['/usr/share/sounds/freedesktop/stereo/bell.oga'] },
-      { command: 'pw-play', args: ['/usr/share/sounds/freedesktop/stereo/bell.oga'] }
+      {
+        command: 'paplay',
+        args: ['/usr/share/sounds/freedesktop/stereo/bell.oga']
+      },
+      {
+        command: 'pw-play',
+        args: ['/usr/share/sounds/freedesktop/stereo/bell.oga']
+      }
     ],
     win32: [
       // Mirrors Electron's Windows Beep() -> MessageBeep().
@@ -174,12 +181,61 @@ ipcMain.handle('beep', () => {
   playSystemBell();
 });
 
-ipcMain.handle('isDefaultProtocolClient', (_, { protocol, path, args }) => {
-  return app.isDefaultProtocolClient(protocol, path, args);
+// Registration lives here so both the async API used by
+// ProtocolHandlerInstaller and the synchronous API used by the settings-view
+// panel share one implementation on every platform.
+function isDefaultProtocolClient(protocol, execPath, args) {
+  if (process.platform === 'linux') {
+    return LinuxUriHandler.isRegistered();
+  }
+  return app.isDefaultProtocolClient(protocol, execPath, args);
+}
+
+function setAsDefaultProtocolClient(protocol, execPath, args) {
+  if (process.platform === 'linux') {
+    return LinuxUriHandler.register();
+  }
+  return app.setAsDefaultProtocolClient(protocol, execPath, args);
+}
+
+function unsetAsDefaultProtocolClient(protocol) {
+  if (process.platform === 'linux') {
+    return LinuxUriHandler.unregister();
+  }
+  return false;
+}
+
+ipcMain.handle('isDefaultProtocolClient', (_, { protocol, execPath, args }) =>
+  isDefaultProtocolClient(protocol, execPath, args)
+);
+
+ipcMain.handle(
+  'setAsDefaultProtocolClient',
+  (_, { protocol, execPath, args }) =>
+    setAsDefaultProtocolClient(protocol, execPath, args)
+);
+
+ipcMain.handle('unsetDefaultProtocolClient', (_, { protocol }) =>
+  unsetAsDefaultProtocolClient(protocol)
+);
+
+// Synchronous variants for renderer code that can't await, namely the
+// settings-view "URI Handling" panel button.
+const URI_HANDLER_ARGS = ['--uri-handler', '--'];
+ipcMain.on('isDefaultProtocolClientSync', (event, protocol) => {
+  event.returnValue = isDefaultProtocolClient(
+    protocol,
+    process.execPath,
+    URI_HANDLER_ARGS
+  );
 });
 
-ipcMain.handle('setAsDefaultProtocolClient', (_, { protocol, path, args }) => {
-  return app.setAsDefaultProtocolClient(protocol, path, args);
+ipcMain.on('setAsDefaultProtocolClientSync', (event, protocol) => {
+  event.returnValue = setAsDefaultProtocolClient(
+    protocol,
+    process.execPath,
+    URI_HANDLER_ARGS
+  );
 });
 // The application's singleton class.
 //

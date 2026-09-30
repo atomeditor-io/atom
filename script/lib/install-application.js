@@ -184,6 +184,49 @@ module.exports = function(packagedAppPath, installDir) {
     }
 
     {
+      // Install xdg desktop file for the atom: URI scheme handler
+      const urlHandlerDesktopEntryPath = path.join(
+        applicationsDirPath,
+        `${atomExecutableName}-url-handler.desktop`
+      );
+      if (fs.existsSync(urlHandlerDesktopEntryPath)) {
+        console.log(
+          `Removing existing URL handler desktop entry file at "${urlHandlerDesktopEntryPath}"`
+        );
+        fs.removeSync(urlHandlerDesktopEntryPath);
+      }
+      console.log(
+        `Writing URL handler desktop entry file at "${urlHandlerDesktopEntryPath}"`
+      );
+      const urlHandlerDesktopEntryTemplate = fs.readFileSync(
+        path.join(
+          CONFIG.repositoryRootPath,
+          'resources',
+          'linux',
+          'atom-url-handler.desktop.in'
+        )
+      );
+      const urlHandlerDesktopEntryContents = template(
+        urlHandlerDesktopEntryTemplate
+      )({
+        appName,
+        appFileName: atomExecutableName,
+        description: appDescription,
+        installDir: prefixDirPath,
+        iconPath: atomExecutableName
+      });
+      fs.writeFileSync(
+        urlHandlerDesktopEntryPath,
+        urlHandlerDesktopEntryContents
+      );
+
+      // Refresh the desktop database so the new MIME association is picked up.
+      try {
+        execSync(`update-desktop-database ${applicationsDirPath}`);
+      } catch (e) {}
+    }
+
+    {
       // Add atom executable to the PATH
       const atomBinDestinationPath = path.join(binDirPath, atomExecutableName);
       if (fs.existsSync(atomBinDestinationPath)) {

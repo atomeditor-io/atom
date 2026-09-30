@@ -107,6 +107,34 @@ module.exports = function(packagedAppPath) {
     desktopEntryContents
   );
 
+  console.log(
+    `Writing URL handler desktop entry file into "${rpmPackageBuildDirPath}"`
+  );
+  const urlHandlerDesktopEntryTemplate = fs.readFileSync(
+    path.join(
+      CONFIG.repositoryRootPath,
+      'resources',
+      'linux',
+      'atom-url-handler.desktop.in'
+    )
+  );
+  const urlHandlerDesktopEntryContents = template(
+    urlHandlerDesktopEntryTemplate
+  )({
+    appName: appName,
+    appFileName: atomExecutableName,
+    description: appDescription,
+    installDir: '/usr',
+    iconPath: atomExecutableName
+  });
+  fs.writeFileSync(
+    path.join(
+      rpmPackageBuildDirPath,
+      `${atomExecutableName}-url-handler.desktop`
+    ),
+    urlHandlerDesktopEntryContents
+  );
+
   console.log(`Copying atom.sh into "${rpmPackageBuildDirPath}"`);
   fs.copySync(
     path.join(CONFIG.repositoryRootPath, 'atom.sh'),

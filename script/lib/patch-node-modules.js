@@ -807,7 +807,26 @@ const REMOTE_USAGE_REPLACEMENTS = [
   {
     relative: path.join('settings-view', 'lib', 'uri-handler-panel.js'),
     replacements: [
-      ["require('electron').remote.app", "require('@electron/remote').app"]
+      ["require('electron').remote.app", "require('@electron/remote').app"],
+      // Linux registers atom:// through a desktop file + mimeapps.list rather
+      // than Electron's app.setAsDefaultProtocolClient, so route the panel
+      // through the main process (which knows how) and let Linux register too.
+      [
+        "function isSupported () {\n  return ['win32', 'darwin'].includes(process.platform)\n}",
+        "function isSupported () {\n  return ['win32', 'darwin', 'linux'].includes(process.platform)\n}"
+      ],
+      [
+        "function isDefaultProtocolClient () {\n  return require('@electron/remote').app.isDefaultProtocolClient('atom', process.execPath, ['--uri-handler', '--'])\n}",
+        "function isDefaultProtocolClient () {\n  return require('electron').ipcRenderer.sendSync('isDefaultProtocolClientSync', 'atom')\n}"
+      ],
+      [
+        "function setAsDefaultProtocolClient () {\n  // This Electron API is only available on Windows and macOS. There might be some\n  // hacks to make it work on Linux; see https://github.com/electron/electron/issues/6440\n  return isSupported() && require('@electron/remote').app.setAsDefaultProtocolClient('atom', process.execPath, ['--uri-handler', '--'])\n}",
+        "function setAsDefaultProtocolClient () {\n  return isSupported() && require('electron').ipcRenderer.sendSync('setAsDefaultProtocolClientSync', 'atom')\n}"
+      ],
+      [
+        "'Registration as the default handler for atom:// URIs is only supported on Windows and macOS.'",
+        "'Registration as the default handler for atom:// URIs is not supported on this platform.'"
+      ]
     ]
   },
   {

@@ -7,25 +7,38 @@ const NEVER = 'never';
 
 module.exports = class ProtocolHandlerInstaller {
   isSupported() {
-    return ['win32', 'darwin'].includes(process.platform);
+    return ['win32', 'darwin', 'linux'].includes(process.platform);
   }
 
   async isDefaultProtocolClient() {
     return ipcRenderer.invoke('isDefaultProtocolClient', {
       protocol: 'atom',
-      path: process.execPath,
+      execPath: process.execPath,
       args: ['--uri-handler', '--']
     });
   }
 
   async setAsDefaultProtocolClient() {
-    // This Electron API is only available on Windows and macOS. There might be some
-    // hacks to make it work on Linux; see https://github.com/electron/electron/issues/6440
+    // On Windows and macOS this goes through Electron's
+    // app.setAsDefaultProtocolClient(); on Linux the main process registers the
+    // atom: scheme with xdg-mime instead, because Electron's implementation is
+    // a no-op there (https://github.com/electron/electron/issues/6440).
     return (
       this.isSupported() &&
       ipcRenderer.invoke('setAsDefaultProtocolClient', {
         protocol: 'atom',
-        path: process.execPath,
+        execPath: process.execPath,
+        args: ['--uri-handler', '--']
+      })
+    );
+  }
+
+  async unsetAsDefaultProtocolClient() {
+    return (
+      this.isSupported() &&
+      ipcRenderer.invoke('unsetDefaultProtocolClient', {
+        protocol: 'atom',
+        execPath: process.execPath,
         args: ['--uri-handler', '--']
       })
     );
@@ -39,23 +52,25 @@ module.exports = class ProtocolHandlerInstaller {
     const behaviorWhenNotProtocolClient = config.get(SETTING);
     switch (behaviorWhenNotProtocolClient) {
       case PROMPT:
-        if (await !this.isDefaultProtocolClient()) {
+        if (!(await this.isDefaultProtocolClient())) {
           this.promptToBecomeProtocolClient(config, notifications);
         }
         break;
       case ALWAYS:
-        if (await !this.isDefaultProtocolClient()) {
+        if (!(await this.isDefaultProtocolClient())) {
           this.setAsDefaultProtocolClient();
         }
         break;
       case NEVER:
         if (process.platform === 'win32') {
-          // Only win32 supports deregistration
+          // Only win32 supports deregistration through the registry.
           const Registry = require('winreg');
           const commandKey = new Registry({ hive: 'HKCR', key: `\\atom` });
           commandKey.destroy((_err, _val) => {
             /* no op */
           });
+        } else if (process.platform === 'linux') {
+          this.unsetAsDefaultProtocolClient();
         }
         break;
       default:

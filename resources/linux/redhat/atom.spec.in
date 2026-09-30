@@ -32,6 +32,7 @@ cp atom.sh "%{buildroot}/<%= installDir %>/bin/<%= appFileName %>"
 chmod 755 "%{buildroot}/<%= installDir %>/bin/<%= appFileName %>"
 mkdir -p "%{buildroot}/<%= installDir %>/share/applications/"
 cp "<%= appFileName %>.desktop" "%{buildroot}/<%= installDir %>/share/applications/"
+cp "<%= appFileName %>-url-handler.desktop" "%{buildroot}/<%= installDir %>/share/applications/"
 mkdir -p "%{buildroot}/<%= installDir %>/share/polkit-1/actions/"
 cp "<%= policyFileName %>" "%{buildroot}/<%= installDir %>/share/polkit-1/actions/<%= policyFileName %>"
 
@@ -54,11 +55,21 @@ cp "icons/24.png" "%{buildroot}/<%= installDir %>/share/icons/hicolor/24x24/apps
 mkdir -p "%{buildroot}/<%= installDir %>/share/icons/hicolor/16x16/apps"
 cp "icons/16.png" "%{buildroot}/<%= installDir %>/share/icons/hicolor/16x16/apps/<%= appFileName %>.png"
 
+# Refresh the desktop database so the atom: URI scheme association is
+# registered even on systems without desktop-file-utils file triggers.
+# Scriptlets must appear before %files.
+%post
+update-desktop-database <%= installDir %>/share/applications > /dev/null 2>&1 || :
+
+%postun
+update-desktop-database <%= installDir %>/share/applications > /dev/null 2>&1 || :
+
 %files
 <%= installDir %>/bin/<%= appFileName %>
 <%= installDir %>/bin/<%= apmFileName %>
 <%= installDir %>/share/<%= appFileName %>/
 <%= installDir %>/share/applications/<%= appFileName %>.desktop
+<%= installDir %>/share/applications/<%= appFileName %>-url-handler.desktop
 <%= installDir %>/share/polkit-1/actions/<%= policyFileName %>
 <%= installDir %>/share/icons/hicolor/
 %attr(4755, root, root) <%= installDir %>/share/<%= appFileName %>/chrome-sandbox

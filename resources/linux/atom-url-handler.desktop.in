@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=<%= appName %> URL Handler
+Comment=<%= description %>
+GenericName=Text Editor
+Exec=env ATOM_DISABLE_SHELLING_OUT_FOR_ENVIRONMENT=false <%= installDir %>/bin/<%= appFileName %> --uri-handler %u
+Icon=<%= iconPath %>
+Type=Application
+Terminal=false
+NoDisplay=true
+StartupNotify=false
+StartupWMClass=atom
+Categories=GTK;Utility;TextEditor;Development;
+MimeType=x-scheme-handler/atom;

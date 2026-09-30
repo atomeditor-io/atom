@@ -168,6 +168,34 @@ module.exports = function(packagedAppPath) {
     desktopEntryContents
   );
 
+  console.log(
+    `Writing URL handler desktop entry file into "${debianPackageApplicationsDirPath}"`
+  );
+  const urlHandlerDesktopEntryTemplate = fs.readFileSync(
+    path.join(
+      CONFIG.repositoryRootPath,
+      'resources',
+      'linux',
+      'atom-url-handler.desktop.in'
+    )
+  );
+  const urlHandlerDesktopEntryContents = template(
+    urlHandlerDesktopEntryTemplate
+  )({
+    appName: CONFIG.appName,
+    appFileName: atomExecutableName,
+    description: appDescription,
+    installDir: '/usr',
+    iconPath: atomExecutableName
+  });
+  fs.writeFileSync(
+    path.join(
+      debianPackageApplicationsDirPath,
+      `${atomExecutableName}-url-handler.desktop`
+    ),
+    urlHandlerDesktopEntryContents
+  );
+
   console.log(`Copying icon into "${debianPackageIconsDirPath}"`);
   const atomPngPath = path.join(
     packagedAppPath,
